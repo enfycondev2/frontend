@@ -31,6 +31,9 @@ model Tender {
   aiProcessed     Boolean  @default(false)
   aiError         String?
 
+  isBookmarked    Boolean  @default(false)
+  isApplied       Boolean  @default(false)
+
   sourceUrl       String
 
   createdAt       DateTime @default(now())
