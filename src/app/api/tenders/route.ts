@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
       
-      where.startDate = {
+      where.createdAt = {
         gte: startOfDay,
         lte: endOfDay
       };
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       endOfDay.setHours(23, 59, 59, 999);
       
       where.NOT = {
-        startDate: {
+        createdAt: {
           gte: startOfDay,
           lte: endOfDay
         }
