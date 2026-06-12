@@ -118,19 +118,38 @@ export default function Dashboard() {
     if (scraping) return;
     setScraping(true);
     try {
-      const res = await axios.post("/api/scrape");
-      if (res.data.success) {
-        alert(`Scraping completed! Found ${res.data.newTenders} new tenders across ${res.data.districtsProcessed} districts.`);
-        fetchTenders();
-        fetchTodayTenders();
-      } else {
-        alert("Scraping encountered an error.");
+      const { DISTRICTS } = await import("@/lib/scraper/districts");
+      let totalNew = 0;
+      let totalProcessed = 0;
+      
+      for (const district of DISTRICTS) {
+        try {
+          // Update button UI state to show progress
+          const btn = document.getElementById("scrape-btn");
+          if (btn) btn.innerText = `Crawling ${district}...`;
+
+          const res = await axios.post("/api/scrape", { district });
+          if (res.data.success) {
+            totalNew += res.data.newTenders || 0;
+            totalProcessed++;
+          }
+        } catch (err) {
+          console.error(`Failed to scrape ${district}:`, err);
+        }
+        // Small delay between districts to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+      
+      alert(`Scraping completed! Found ${totalNew} new tenders across ${totalProcessed} districts.`);
+      fetchTenders();
+      fetchTodayTenders();
     } catch (error) {
       console.error("Scraping error:", error);
       alert("Failed to trigger scrape.");
     } finally {
       setScraping(false);
+      const btn = document.getElementById("scrape-btn");
+      if (btn) btn.innerText = "Run Scraper";
     }
   };
 
@@ -156,13 +175,14 @@ export default function Dashboard() {
               Logout
             </button>
             <button
-            onClick={handleScrape}
-            disabled={scraping}
-            className={`inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
-              ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-          >
-            <RefreshCw className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} />
-            {scraping ? 'Crawling Districts...' : 'Run Scraper'}
+              id="scrape-btn"
+              onClick={handleScrape}
+              disabled={scraping}
+              className={`inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
+                ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              <RefreshCw className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} />
+              {scraping ? 'Crawling Districts...' : 'Run Scraper'}
             </button>
           </div>
         </div>
