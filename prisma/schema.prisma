@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tender {
+  id              String   @id @default(uuid())
+
+  district        String
+
+  title           String
+  description     String?
+
+  startDate       DateTime?
+  endDate         DateTime?
+
+  noticePdfUrl    String?
+  tenderPdfUrl    String?
+
+  tenderValue     String?
+  emd             String?
+  applicationCost String?
+
+  aiSummary       String?
+  priority        String?
+
+  aiProcessed     Boolean  @default(false)
+  aiError         String?
+
+  sourceUrl       String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([district])
+  @@index([endDate])
+
+  // Workaround for SQLite: We cannot have nullable columns in a unique constraint in SQLite cleanly
+  // But wait, actually Prisma supports nullable unique constraints on SQLite starting Prisma 5
+  @@unique([district, tenderPdfUrl])
+}
+
+model ScrapeLog {
+  id            String   @id @default(uuid())
+
+  district      String
+
+  status        String
+
+  tendersFound  Int
+
+  error         String?
+
+  createdAt     DateTime @default(now())
+}

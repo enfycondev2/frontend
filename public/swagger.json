@@ -1,0 +1,262 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Odisha Tender Aggregation Platform API",
+    "description": "API for fetching, filtering, and triggering scrapes for Odisha district tenders.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Local server"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Verifies that the API and server are running successfully.",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrape": {
+      "post": {
+        "summary": "Trigger Scraper",
+        "description": "Manually triggers the background scraping process. If a specific district is provided, it only scrapes that district. Otherwise, it scrapes all 30 Odisha districts.",
+        "requestBody": {
+          "description": "Optional payload to scrape a specific district.",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "district": {
+                    "type": "string",
+                    "description": "Name of the district to scrape (e.g., 'boudh', 'khordha'). If omitted, all districts are scraped."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful scrape completion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "districtsProcessed": {
+                      "type": "integer",
+                      "example": 30
+                    },
+                    "newTenders": {
+                      "type": "integer",
+                      "example": 15
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/test-pdf": {
+      "post": {
+        "summary": "Test PDF Extraction",
+        "description": "Provide a direct URL to a PDF file to test the AI extraction of Tender Value, EMD, and Application Cost.",
+        "requestBody": {
+          "description": "Payload containing the PDF URL.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pdfUrl"],
+                "properties": {
+                  "pdfUrl": {
+                    "type": "string",
+                    "description": "The direct URL to the tender PDF file."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully extracted details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "pdfUrl": { "type": "string" },
+                    "extractedData": {
+                      "type": "object",
+                      "properties": {
+                        "tenderValue": { "type": "string", "nullable": true },
+                        "emd": { "type": "string", "nullable": true },
+                        "applicationCost": { "type": "string", "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request or Missing API Key"
+          },
+          "422": {
+            "description": "Unprocessable Entity (Failed to extract data)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/tenders": {
+      "get": {
+        "summary": "Get Tenders",
+        "description": "Fetches a paginated list of tenders from the database with optional filtering and search capabilities.",
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "description": "Filter by exact district name (e.g., 'boudh', 'khordha').",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search term to filter tenders by Title or Description.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "description": "Filter by active status. 'true' returns unexpired tenders. 'false' returns expired tenders. Leave empty for all.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination (starts at 1).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of tenders to return per page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with paginated tenders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "district": { "type": "string" },
+                          "title": { "type": "string" },
+                          "description": { "type": "string" },
+                          "startDate": { "type": "string", "format": "date-time" },
+                          "endDate": { "type": "string", "format": "date-time" },
+                          "noticePdfUrl": { "type": "string", "nullable": true },
+                          "tenderPdfUrl": { "type": "string", "nullable": true },
+                          "tenderValue": { "type": "string", "nullable": true },
+                          "emd": { "type": "string", "nullable": true },
+                          "applicationCost": { "type": "string", "nullable": true },
+                          "sourceUrl": { "type": "string" },
+                          "createdAt": { "type": "string", "format": "date-time" },
+                          "updatedAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "integer" },
+                        "active": { "type": "integer" },
+                        "expiring": { "type": "integer" },
+                        "districts": { "type": "integer" },
+                        "page": { "type": "integer" },
+                        "pageSize": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  }
+}
