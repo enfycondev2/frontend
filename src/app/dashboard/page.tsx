@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
@@ -21,6 +21,8 @@ export default function Dashboard() {
   const [todayTenders, setTodayTenders] = useState<Tender[]>([]);
   const [activeTab, setActiveTab] = useState("home"); // 'home', 'today', 'this_week', 'bookmarks'
   const [page, setPage] = useState(1);
+  const [tableTotalPages, setTableTotalPages] = useState(1);
+  const lastSearchTerm = useRef(searchTerm);
 
   const fetchTenders = async () => {
     setLoading(true);
@@ -31,6 +33,7 @@ export default function Dashboard() {
       if (districtFilter) params.append("district", districtFilter);
       if (activeFilter === "active") params.append("active", "true");
       if (activeFilter === "expired") params.append("active", "false");
+      if (activeFilter === "expiring") params.append("active", "expiring");
       if (priorityFilter) params.append("priority", priorityFilter);
       // Tab-based overrides
       if (activeTab === "bookmarks") {
@@ -60,6 +63,7 @@ export default function Dashboard() {
       const data = res.data.data as Tender[];
       
       setTenders(data);
+      setTableTotalPages(res.data.meta.totalPages);
       
       if (!searchTerm && !districtFilter && activeFilter === "all" && !priorityFilter) {
         setStats({
@@ -67,8 +71,7 @@ export default function Dashboard() {
           active: res.data.meta.active,
           expiring: res.data.meta.expiring,
           districts: res.data.meta.districts,
-          pendingQueue: res.data.meta.pendingQueue,
-          totalPages: res.data.meta.totalPages
+          pendingQueue: res.data.meta.pendingQueue
         });
       }
 
@@ -96,10 +99,16 @@ export default function Dashboard() {
   }, [searchTerm, activeFilter, districtFilter, priorityFilter, dateFilter, activeTab]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (lastSearchTerm.current !== searchTerm) {
+      lastSearchTerm.current = searchTerm;
+      const timer = setTimeout(() => {
+        fetchTenders();
+      }, 500); // Debounce search
+      return () => clearTimeout(timer);
+    } else {
+      // Fetch instantly on load, pagination, or filter changes
       fetchTenders();
-    }, 500); // Debounce
-    return () => clearTimeout(timer);
+    }
   }, [searchTerm, activeFilter, districtFilter, priorityFilter, dateFilter, activeTab, page]);
 
   useEffect(() => {
@@ -282,7 +291,8 @@ export default function Dashboard() {
               total={stats.total} 
               active={stats.active} 
               expiring={stats.expiring} 
-              districts={stats.districts} 
+              districts={stats.districts}
+              onFilterClick={setActiveFilter}
             />
 
             {todayTenders.length > 0 && (
@@ -350,7 +360,7 @@ export default function Dashboard() {
             dateFilter={dateFilter}
             setDateFilter={setDateFilter}
             page={page}
-            totalPages={stats.totalPages}
+            totalPages={tableTotalPages}
             onPageChange={setPage}
           />
         )}

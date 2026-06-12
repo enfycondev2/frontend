@@ -89,6 +89,14 @@ export async function GET(request: NextRequest) {
     } else if (active === "false") {
       const now = new Date();
       where.endDate = { lt: now };
+    } else if (active === "expiring") {
+      const now = new Date();
+      const in7Days = new Date();
+      in7Days.setDate(now.getDate() + 7);
+      where.endDate = {
+        gte: now,
+        lte: in7Days
+      };
     }
 
     const skip = (page - 1) * pageSize;

@@ -5,9 +5,10 @@ interface StatsProps {
   active: number;
   expiring: number;
   districts: number;
+  onFilterClick?: (filter: string) => void;
 }
 
-export function DashboardStats({ total, active, expiring, districts }: StatsProps) {
+export function DashboardStats({ total, active, expiring, districts, onFilterClick }: StatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <StatCard 
@@ -15,18 +16,21 @@ export function DashboardStats({ total, active, expiring, districts }: StatsProp
         value={total} 
         icon={<FileText className="w-6 h-6 text-blue-500" />} 
         bgColor="bg-blue-50" 
+        onClick={() => onFilterClick && onFilterClick('all')}
       />
       <StatCard 
         title="Active Tenders" 
         value={active} 
         icon={<CheckCircle className="w-6 h-6 text-emerald-500" />} 
         bgColor="bg-emerald-50" 
+        onClick={() => onFilterClick && onFilterClick('active')}
       />
       <StatCard 
         title="Expiring Soon (7d)" 
         value={expiring} 
         icon={<Clock className="w-6 h-6 text-amber-500" />} 
         bgColor="bg-amber-50" 
+        onClick={() => onFilterClick && onFilterClick('expiring')}
       />
       <StatCard 
         title="Districts Crawled" 
@@ -38,9 +42,12 @@ export function DashboardStats({ total, active, expiring, districts }: StatsProp
   );
 }
 
-function StatCard({ title, value, icon, bgColor }: { title: string; value: number; icon: React.ReactNode; bgColor: string }) {
+function StatCard({ title, value, icon, bgColor, onClick }: { title: string; value: number; icon: React.ReactNode; bgColor: string; onClick?: () => void }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex items-center space-x-4 transition-all hover:shadow-md">
+    <div 
+      onClick={onClick}
+      className={`bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex items-center space-x-4 transition-all hover:shadow-md ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:border-blue-200' : ''}`}
+    >
       <div className={`p-4 rounded-full ${bgColor}`}>
         {icon}
       </div>

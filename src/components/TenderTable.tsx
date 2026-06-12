@@ -8,7 +8,23 @@ import axios from "axios";
 
 import { DISTRICTS } from "@/lib/scraper/districts";
 
+const getStartText = (date: Date) => {
+  const diff = dayjs().startOf('day').diff(dayjs(date).startOf('day'), 'day');
+  if (diff === 0) return "(Today)";
+  if (diff === 1) return "(1 day ago)";
+  if (diff > 1) return `(${diff} days ago)`;
+  if (diff === -1) return "(Tomorrow)";
+  return `(In ${Math.abs(diff)} days)`;
+};
 
+const getEndText = (date: Date) => {
+  const diff = dayjs(date).startOf('day').diff(dayjs().startOf('day'), 'day');
+  if (diff < -1) return `(Expired ${Math.abs(diff)} days ago)`;
+  if (diff === -1) return "(Expired yesterday)";
+  if (diff === 0) return "(Expires today)";
+  if (diff === 1) return "(Expires tomorrow)";
+  return `(Expires in ${diff} days)`;
+};
 
 interface TenderTableProps {
   tenders: Tender[];
@@ -123,6 +139,7 @@ export function TenderTable({
           >
             <option value="all">All Status</option>
             <option value="active">Active Only</option>
+            <option value="expiring">Expiring Soon</option>
             <option value="expired">Expired</option>
           </select>
           
@@ -215,11 +232,25 @@ export function TenderTable({
                   <div className="flex flex-col gap-1 text-xs">
                     <span className="flex items-center gap-1 text-gray-600">
                       <Calendar className="w-3 h-3" />
-                      Start: {tender.startDate ? dayjs(tender.startDate).format("DD MMM YYYY") : "N/A"}
+                      Start: {tender.startDate ? (
+                        <>
+                          {dayjs(tender.startDate).format("DD MMM YYYY")}
+                          <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded ml-1 font-semibold tracking-wide">
+                            {getStartText(tender.startDate)}
+                          </span>
+                        </>
+                      ) : "N/A"}
                     </span>
                     <span className="flex items-center gap-1 font-medium text-red-600">
                       <Calendar className="w-3 h-3" />
-                      End: {tender.endDate ? dayjs(tender.endDate).format("DD MMM YYYY") : "N/A"}
+                      End: {tender.endDate ? (
+                        <>
+                          {dayjs(tender.endDate).format("DD MMM YYYY")}
+                          <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded ml-1 font-bold tracking-wide">
+                            {getEndText(tender.endDate)}
+                          </span>
+                        </>
+                      ) : "N/A"}
                     </span>
                   </div>
                 </td>
