@@ -39,7 +39,7 @@ export async function POST() {
               emd: details.emd,
               applicationCost: details.applicationCost,
               aiSummary: details.aiSummary,
-              priority: details.priority,
+              tags: details.tags,
               aiProcessed: true,
               aiError: null
             }

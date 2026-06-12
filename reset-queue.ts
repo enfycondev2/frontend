@@ -10,8 +10,7 @@ async function main() {
       aiSummary: null,
       tenderValue: null,
       emd: null,
-      applicationCost: null,
-      priority: "LOW"
+      applicationCost: null
     }
   });
 

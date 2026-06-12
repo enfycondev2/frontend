@@ -26,7 +26,7 @@ model Tender {
   applicationCost String?
 
   aiSummary       String?
-  priority        String?
+  tags            String[] @default([])
 
   aiProcessed     Boolean  @default(false)
   aiError         String?
@@ -59,4 +59,10 @@ model ScrapeLog {
   error         String?
 
   createdAt     DateTime @default(now())
+}
+
+model PriorityKeyword {
+  id        String   @id @default(uuid())
+  word      String   @unique
+  createdAt DateTime @default(now())
 }

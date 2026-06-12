@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
 
   // Protect /dashboard and /
   if (request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!authCookie || authCookie.value !== 'true') {
+    if (!authCookie || !authCookie.value) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
-import { RefreshCw, LayoutDashboard, LogOut } from "lucide-react";
+import { RefreshCw, LayoutDashboard, LogOut, Settings, ChevronDown, User } from "lucide-react";
+import Link from "next/link";
 import axios from "axios";
 
 export default function Dashboard() {
@@ -15,14 +16,27 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'active', 'expired'
   const [districtFilter, setDistrictFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, districts: 0, pendingQueue: 0, totalPages: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, highPriority: 0, districts: 0, pendingQueue: 0, totalPages: 0 });
   const [priorityFilter, setPriorityFilter] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [todayTenders, setTodayTenders] = useState<Tender[]>([]);
   const [activeTab, setActiveTab] = useState("home"); // 'home', 'today', 'this_week', 'bookmarks'
   const [page, setPage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
+  const [username, setUsername] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const lastSearchTerm = useRef(searchTerm);
+
+  useEffect(() => {
+    // Parse cookie to get username
+    const cookies = document.cookie.split('; ');
+    const authCookie = cookies.find(row => row.startsWith('auth='));
+    if (authCookie) {
+      let val = authCookie.split('=')[1];
+      if (val === "true") val = "Admin";
+      setUsername(val || "Admin");
+    }
+  }, []);
 
   const fetchTenders = async () => {
     setLoading(true);
@@ -70,6 +84,7 @@ export default function Dashboard() {
           total: res.data.meta.total,
           active: res.data.meta.active,
           expiring: res.data.meta.expiring,
+          highPriority: res.data.meta.highPriority || 0,
           districts: res.data.meta.districts,
           pendingQueue: res.data.meta.pendingQueue
         });
@@ -255,17 +270,40 @@ export default function Dashboard() {
             </nav>
 
             {/* Actions - Right (Visible only on desktop) */}
-            <div className="hidden lg:flex items-center gap-4 shrink-0">
-              <button
-                onClick={() => {
-                  document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                  window.location.href = "/login";
-                }}
-                className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium transition-colors"
-              >
-                <LogOut className="w-4 h-4 shrink-0" />
-                Logout
-              </button>
+            <div className="hidden lg:flex items-center gap-4 shrink-0 relative">
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-full transition-colors border border-gray-200"
+                >
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span className="capitalize">{username || "Profile"}</span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 overflow-hidden">
+                    <Link
+                      href="/dashboard/settings"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 shrink-0" />
+                      Settings
+                    </Link>
+                    <button
+                      onClick={() => {
+                        document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                        window.location.href = "/login";
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 id="scrape-btn"
                 onClick={handleScrape}
@@ -310,6 +348,7 @@ export default function Dashboard() {
                   setDistrictFilter={() => {}}
                   priorityFilter=""
                   setPriorityFilter={() => {}}
+                  highPriorityCount={stats.highPriority}
                   hideControls={true}
                 />
               </div>
@@ -357,6 +396,7 @@ export default function Dashboard() {
             setDistrictFilter={setDistrictFilter}
             priorityFilter={priorityFilter}
             setPriorityFilter={setPriorityFilter}
+            highPriorityCount={stats.highPriority}
             dateFilter={dateFilter}
             setDateFilter={setDateFilter}
             page={page}

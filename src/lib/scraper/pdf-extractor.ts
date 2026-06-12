@@ -1,24 +1,14 @@
 import axios from 'axios';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 
-// You can add or remove keywords here to adjust what gets flagged as HIGH priority
-export const HIGH_PRIORITY_KEYWORDS = [
-  "Information Technology",
-  "IT",
-  "Software",
-  "Hardware",
-  "Computer",
-  "Solar",
-  "Solar Energy",
-  "Empanelment",
-];
+
 
 export interface ExtractedTenderDetails {
   tenderValue: string | null;
   emd: string | null;
   applicationCost: string | null;
   aiSummary: string | null;
-  priority: "HIGH" | "LOW";
+  tags: string[];
   rawText?: string | null;
 }
 
@@ -68,7 +58,7 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
         emd: { type: Type.STRING, description: "Earnest Money Deposit", nullable: true },
         applicationCost: { type: Type.STRING, description: "Cost of Tender Paper", nullable: true },
         aiSummary: { type: Type.STRING, description: "1-sentence summary", nullable: true },
-        priority: { type: Type.STRING, description: `Classify as "HIGH" if relates to: ${HIGH_PRIORITY_KEYWORDS.join(", ")}. Else "LOW".`, nullable: true }
+        tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of relevant industry tags/keywords (e.g. Software, Infrastructure, Solar, Civil, Electrical, etc.) extracted from the document." }
       }
     };
 
@@ -79,7 +69,7 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
       2. EMD (Earnest Money Deposit)
       3. Cost of Tender Paper/Document Fee
       4. A brief 1-sentence summary of the work
-      5. Priority Classification based on the topics: ${HIGH_PRIORITY_KEYWORDS.join(", ")}
+      5. Extract a list of relevant industry tags/keywords (e.g. Software, Hardware, Civil, Solar, Electrical)
       
       Note: The document may be a scanned image. Please read the tables carefully.
     `;
@@ -131,19 +121,18 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
         emd: null,
         applicationCost: null,
         aiSummary: null,
-        priority: "LOW",
+        tags: [],
         rawText: text
       };
 
-      const upperText = text.toUpperCase();
-      for (const kw of HIGH_PRIORITY_KEYWORDS) {
+      const commonTags = ["Software", "Hardware", "Civil", "Electrical", "Solar", "Infrastructure", "Vehicle", "Security", "Medical"];
+      for (const kw of commonTags) {
         if (upperText.includes(kw.toUpperCase())) {
-          fallbackDetails.priority = "HIGH";
-          break;
+          fallbackDetails.tags.push(kw);
         }
       }
 
-      fallbackDetails.aiSummary = `[Auto-Fallback] Tender related to ${fallbackDetails.priority === 'HIGH' ? 'priority sectors' : 'general sectors'}.`;
+      fallbackDetails.aiSummary = `[Auto-Fallback] Tender related to general sectors.`;
 
       const emdMatch = text.match(/(?:EMD|Earnest Money|Bid Security)[\s\S]{0,100}?(?:Rs\.?|₹|INR)[\s]*([\d,]+)/i);
       if (emdMatch) fallbackDetails.emd = `Rs. ${emdMatch[1]}`;

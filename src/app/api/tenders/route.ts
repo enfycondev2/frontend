@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
     const dateRange = searchParams.get("dateRange");
     const includeStats = searchParams.get("includeStats");
 
+    const keywords = await prisma.priorityKeyword.findMany();
+    const keywordList = keywords.map(k => k.word);
+
     const where: any = {};
+    const AND: any[] = [];
 
     if (bookmarked === "true") {
       where.isBookmarked = true;
@@ -31,8 +35,22 @@ export async function GET(request: NextRequest) {
       where.district = district;
     }
 
-    if (priority) {
-      where.priority = priority;
+    if (priority === 'HIGH') {
+      const keywordConditions = keywordList.length > 0 ? [
+        { tags: { hasSome: keywordList } },
+        ...keywordList.map(kw => ({ title: { contains: kw, mode: 'insensitive' as const } })),
+        ...keywordList.map(kw => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
+      ] : [];
+
+      // If no keywords exist, this will effectively return nothing for HIGH priority
+      if (keywordConditions.length > 0) {
+        AND.push({
+          OR: keywordConditions
+        });
+      } else {
+        // Force an empty result if there are no priority keywords
+        AND.push({ id: "NONE" });
+      }
     }
 
     if (dateRange === "this_week") {
@@ -74,18 +92,22 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } }
-      ];
+      AND.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
     }
 
     if (active === "true") {
       const now = new Date();
-      where.OR = [
-        { endDate: { gte: now } },
-        { endDate: null } // Assume null end date is still active unless known otherwise
-      ];
+      AND.push({
+        OR: [
+          { endDate: { gte: now } },
+          { endDate: null }
+        ]
+      });
     } else if (active === "false") {
       const now = new Date();
       where.endDate = { lt: now };
@@ -97,6 +119,10 @@ export async function GET(request: NextRequest) {
         gte: now,
         lte: in7Days
       };
+    }
+
+    if (AND.length > 0) {
+      where.AND = AND;
     }
 
     const skip = (page - 1) * pageSize;
@@ -125,9 +151,17 @@ export async function GET(request: NextRequest) {
     let activeTendersCount = 0;
     let expiringTendersCount = 0;
     let districtGroups: any[] = [];
+    let highPriorityCount = 0;
 
     // Only run heavy stats queries when explicitly requested
     if (includeStats === "true") {
+      
+      const keywordConditions = keywordList.length > 0 ? [
+        { tags: { hasSome: keywordList } },
+        ...keywordList.map(kw => ({ title: { contains: kw, mode: 'insensitive' as const } })),
+        ...keywordList.map(kw => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
+      ] : [];
+
       const statsResults = await Promise.all([
         prisma.tender.count({
           where: {
@@ -150,11 +184,21 @@ export async function GET(request: NextRequest) {
         prisma.tender.groupBy({
           by: ['district'],
           where
+        }),
+        prisma.tender.count({
+          where: {
+            ...where,
+            AND: [
+              ...(where.AND || []),
+              ...(keywordConditions.length > 0 ? [{ OR: keywordConditions }] : [{ id: "NONE" }])
+            ]
+          }
         })
       ]);
       activeTendersCount = statsResults[0];
       expiringTendersCount = statsResults[1];
       districtGroups = statsResults[2];
+      highPriorityCount = priority === 'HIGH' ? await totalPromise : statsResults[3];
     }
 
     const [tenders, total, pendingQueue] = await Promise.all([
@@ -163,12 +207,29 @@ export async function GET(request: NextRequest) {
       pendingQueuePromise
     ]);
 
+    // Add the dynamic isHighPriority flag
+    const tendersWithPriority = tenders.map(t => {
+      const hasHighPriorityTag = t.tags && t.tags.some((tag: string) => 
+        keywordList.some(kw => tag.toLowerCase().includes(kw.toLowerCase()))
+      );
+      
+      const titleMatch = keywordList.some(kw => t.title?.toLowerCase().includes(kw.toLowerCase()));
+      const summaryMatch = keywordList.some(kw => t.aiSummary?.toLowerCase().includes(kw.toLowerCase()));
+
+      return {
+        ...t,
+        isHighPriority: hasHighPriorityTag || titleMatch || summaryMatch
+      };
+    });
+
     return NextResponse.json({
-      data: tenders,
+      success: true,
+      data: tendersWithPriority,
       meta: {
         total,
         active: activeTendersCount,
         expiring: expiringTendersCount,
+        highPriority: highPriorityCount,
         districts: districtGroups.length,
         pendingQueue,
         page,
