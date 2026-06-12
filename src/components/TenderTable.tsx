@@ -95,33 +95,33 @@ export function TenderTable({
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+      <div className="overflow-x-auto overflow-y-auto max-h-[70vh] border-t border-gray-100">
+        <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
+          <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200 sticky top-0 z-20 shadow-sm">
             <tr>
-              <th className="px-6 py-4 w-48">District</th>
-              <th className="px-6 py-4 max-w-md">Title & AI Summary</th>
-              <th className="px-6 py-4 w-48">Financials</th>
-              <th className="px-6 py-4 w-40">Timeline</th>
-              <th className="px-6 py-4 w-32">Documents</th>
-              <th className="px-6 py-4 w-24">Source</th>
+              <th className="px-4 py-4 w-[12%]">District</th>
+              <th className="px-4 py-4 w-[40%]">Title & AI Summary</th>
+              <th className="px-4 py-4 w-[18%]">Financials</th>
+              <th className="px-4 py-4 w-[15%]">Timeline</th>
+              <th className="px-4 py-4 w-[10%]">Documents</th>
+              <th className="px-4 py-4 w-[5%] text-center">Source</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {tenders.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                   No tenders found. Try adjusting your filters or run the scraper.
                 </td>
               </tr>
             ) : tenders.map((tender) => (
               <tr key={tender.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-normal">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
                     {tender.district}
                   </span>
                 </td>
-                <td className="px-6 py-4 max-w-md whitespace-normal">
+                <td className="px-4 py-4 whitespace-normal">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-gray-900 line-clamp-2">{tender.title}</p>
                     {tender.priority === 'HIGH' && (
@@ -140,24 +140,24 @@ export function TenderTable({
                   )}
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-normal">
                   <div className="flex flex-col gap-2 text-xs">
                     <div className="flex flex-col">
                       <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">Est. Value</span>
-                      <span className="text-emerald-600 font-semibold truncate" title={tender.tenderValue || "N/A"}>{tender.tenderValue || "N/A"}</span>
+                      <span className="text-emerald-600 font-semibold break-words" title={tender.tenderValue || "N/A"}>{tender.tenderValue || "N/A"}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">EMD</span>
-                      <span className="text-blue-600 font-semibold truncate" title={tender.emd || "N/A"}>{tender.emd || "N/A"}</span>
+                      <span className="text-blue-600 font-semibold break-words" title={tender.emd || "N/A"}>{tender.emd || "N/A"}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">App Cost</span>
-                      <span className="text-purple-600 font-semibold truncate" title={tender.applicationCost || "N/A"}>{tender.applicationCost || "N/A"}</span>
+                      <span className="text-purple-600 font-semibold break-words" title={tender.applicationCost || "N/A"}>{tender.applicationCost || "N/A"}</span>
                     </div>
                   </div>
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-normal">
                   <div className="flex flex-col gap-1 text-xs">
                     <span className="flex items-center gap-1 text-gray-600">
                       <Calendar className="w-3 h-3" />
@@ -169,8 +169,8 @@ export function TenderTable({
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex gap-2">
+                <td className="px-4 py-4 whitespace-normal">
+                  <div className="flex flex-wrap gap-2">
                     {tender.noticePdfUrl && (
                       <a href={tender.noticePdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded">
                         <Download className="w-3 h-3" /> Notice
@@ -183,9 +183,9 @@ export function TenderTable({
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <a href={tender.sourceUrl} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-gray-700">
-                    <ExternalLink className="w-4 h-4" />
+                <td className="px-4 py-4 whitespace-nowrap text-center">
+                  <a href={tender.sourceUrl} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-gray-700 inline-block">
+                    <ExternalLink className="w-4 h-4 mx-auto" />
                   </a>
                 </td>
               </tr>

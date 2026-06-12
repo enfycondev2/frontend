@@ -26,21 +26,27 @@ export async function GET(request: NextRequest) {
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setHours(startOfDay.getHours() - 6); // Adjust for IST/UTC timezone offsets
+      
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setHours(endOfDay.getHours() + 6);
       
-      where.createdAt = {
+      where.startDate = {
         gte: startOfDay,
         lte: endOfDay
       };
     } else if (excludeToday === "true") {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setHours(startOfDay.getHours() - 6);
+
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setHours(endOfDay.getHours() + 6);
       
       where.NOT = {
-        createdAt: {
+        startDate: {
           gte: startOfDay,
           lte: endOfDay
         }
