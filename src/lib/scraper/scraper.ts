@@ -62,7 +62,7 @@ export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
       const validTenders = rawTenders.filter(tender => {
         const result = TenderSchema.safeParse(tender);
         if (!result.success) {
-          console.warn(`[Validation Error] District: ${district}, Title: ${tender.title}`, result.error.errors);
+          console.warn(`[Validation Error] District: ${district}, Title: ${tender.title}`, result.error.issues);
           return false;
         }
         return true;
