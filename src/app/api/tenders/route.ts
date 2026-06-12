@@ -24,13 +24,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      startOfDay.setHours(startOfDay.getHours() - 6); // Adjust for IST/UTC timezone offsets
+      // Split the string and parse exactly in local time to avoid UTC-midnight shift issues
+      const [year, month, day] = date.split('-').map(Number);
       
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      endOfDay.setHours(endOfDay.getHours() + 6);
+      const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
       
       where.startDate = {
         gte: startOfDay,
@@ -39,11 +37,9 @@ export async function GET(request: NextRequest) {
     } else if (excludeToday === "true") {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-      startOfDay.setHours(startOfDay.getHours() - 6);
 
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
-      endOfDay.setHours(endOfDay.getHours() + 6);
       
       where.NOT = {
         startDate: {

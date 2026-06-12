@@ -41,7 +41,7 @@ export function TenderTable({
       
       {/* Table Controls */}
       {!hideControls && (
-      <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-gray-50/95 backdrop-blur-sm sticky top-[69px] z-10">
+      <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-gray-50/95 backdrop-blur-sm sticky top-[60px] z-30 shadow-sm">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input 
@@ -95,9 +95,9 @@ export function TenderTable({
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto overflow-y-auto max-h-[70vh] border-t border-gray-100">
+      <div className="max-md:overflow-x-auto border-t border-gray-100">
         <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
-          <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+          <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200 sticky top-[60px] md:top-[148px] z-20 shadow-sm">
             <tr>
               <th className="px-4 py-4 w-[12%]">District</th>
               <th className="px-4 py-4 w-[40%]">Title & AI Summary</th>
