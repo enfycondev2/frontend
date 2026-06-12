@@ -8,10 +8,7 @@ import axios from "axios";
 
 import { DISTRICTS } from "@/lib/scraper/districts";
 
-interface ExtendedTender extends Tender {
-  isBookmarked?: boolean;
-  isApplied?: boolean;
-}
+
 
 interface TenderTableProps {
   tenders: Tender[];
@@ -48,7 +45,7 @@ export function TenderTable({
   onPageChange,
   hideControls = false
 }: TenderTableProps) {
-  const [tenders, setTenders] = useState<ExtendedTender[]>(initialTenders);
+  const [tenders, setTenders] = useState<Tender[]>(initialTenders);
 
   useEffect(() => {
     setTenders(initialTenders);
