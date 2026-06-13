@@ -30,10 +30,10 @@ async function backfill() {
             emd: details.emd,
             applicationCost: details.applicationCost,
             aiSummary: details.aiSummary,
-            priority: details.priority
+            tags: details.tags || []
           }
         });
-        console.log(`✅ Updated! Priority: ${details.priority}`);
+        console.log(`✅ Updated! Tags: ${details.tags?.join(', ')}`);
         console.log(`Summary: ${details.aiSummary}`);
       }
     } catch (e: any) {

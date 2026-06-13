@@ -86,7 +86,8 @@ export default function Dashboard() {
           expiring: res.data.meta.expiring,
           highPriority: res.data.meta.highPriority || 0,
           districts: res.data.meta.districts,
-          pendingQueue: res.data.meta.pendingQueue
+          pendingQueue: res.data.meta.pendingQueue,
+          totalPages: res.data.meta.totalPages
         });
       }
 

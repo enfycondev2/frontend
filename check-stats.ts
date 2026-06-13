@@ -27,15 +27,15 @@ async function main() {
     }
   });
 
-  const highPriority = await prisma.tender.count({
-    where: { priority: "HIGH" }
+  const taggedTenders = await prisma.tender.count({
+    where: { NOT: { tags: { isEmpty: true } } }
   });
 
   console.log("=== QUEUE STATISTICS ===");
   console.log(`Total Tenders in DB: ${total}`);
   console.log(`Successfully Processed (AI or Regex): ${successfullyProcessedByAI}`);
   console.log(`Processed but Empty/No Text: ${processedButNoTextOrEmpty}`);
-  console.log(`High Priority Tenders Found: ${highPriority}`);
+  console.log(`Tenders with Tags Extracted: ${taggedTenders}`);
   console.log(`Pending in Queue: ${pending}`);
   console.log(`Recently Errored in Queue (Retrying): ${errorsStuckInQueue}`);
   

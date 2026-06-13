@@ -125,6 +125,7 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
         rawText: text
       };
 
+      const upperText = text.toUpperCase();
       const commonTags = ["Software", "Hardware", "Civil", "Electrical", "Solar", "Infrastructure", "Vehicle", "Security", "Medical"];
       for (const kw of commonTags) {
         if (upperText.includes(kw.toUpperCase())) {

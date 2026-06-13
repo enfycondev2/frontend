@@ -67,7 +67,7 @@ export function TenderTable({
   onPageChange,
   hideControls = false
 }: TenderTableProps) {
-  const [tenders, setTenders] = useState<Tender[]>(initialTenders);
+  const [tenders, setTenders] = useState<ExtendedTender[]>(initialTenders);
 
   useEffect(() => {
     setTenders(initialTenders);
