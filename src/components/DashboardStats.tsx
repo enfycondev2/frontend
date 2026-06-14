@@ -6,9 +6,10 @@ interface StatsProps {
   expiring: number;
   districts: number;
   onFilterClick?: (filter: string) => void;
+  onDistrictsClick?: () => void;
 }
 
-export function DashboardStats({ total, active, expiring, districts, onFilterClick }: StatsProps) {
+export function DashboardStats({ total, active, expiring, districts, onFilterClick, onDistrictsClick }: StatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <StatCard 
@@ -37,6 +38,7 @@ export function DashboardStats({ total, active, expiring, districts, onFilterCli
         value={districts} 
         icon={<MapPin className="w-6 h-6 text-purple-500" />} 
         bgColor="bg-purple-50" 
+        onClick={onDistrictsClick}
       />
     </div>
   );

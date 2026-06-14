@@ -19,6 +19,19 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
   }
 
   try {
+    // 0. Check if URL is a PDF
+    if (!pdfUrl.toLowerCase().split('?')[0].endsWith('.pdf')) {
+      console.warn(`[PDF Extractor] URL is not a PDF: ${pdfUrl}. Skipping AI extraction.`);
+      return {
+        tenderValue: null,
+        emd: null,
+        applicationCost: null,
+        aiSummary: "Non-PDF document attached. Please download to view.",
+        tags: [],
+        rawText: null
+      };
+    }
+
     const ai = new GoogleGenAI({});
 
     // 1. Download the PDF
@@ -37,12 +50,15 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
     let rawTextFromPdf: string | null = null;
     try {
       const PDFParser = require('pdf2json');
-      rawTextFromPdf = await new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser(null, 1);
-        pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
-        pdfParser.on("pdfParser_dataReady", () => resolve(pdfParser.getRawTextContent()));
-        pdfParser.parseBuffer(buffer);
-      });
+      rawTextFromPdf = await Promise.race([
+        new Promise<string>((resolve, reject) => {
+          const pdfParser = new PDFParser(null, 1);
+          pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+          pdfParser.on("pdfParser_dataReady", () => resolve(pdfParser.getRawTextContent()));
+          pdfParser.parseBuffer(buffer);
+        }),
+        new Promise<string>((_, reject) => setTimeout(() => reject(new Error("pdf2json timeout")), 10000))
+      ]);
     } catch (e: any) {
       console.warn(`[PDF Extractor] Warning: Could not extract raw text: ${e.message || e}`);
     }

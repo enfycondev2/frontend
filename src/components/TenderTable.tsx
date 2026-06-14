@@ -207,8 +207,12 @@ export function TenderTable({
                   No tenders found. Try adjusting your filters or run the scraper.
                 </td>
               </tr>
-            ) : tenders.map((tender) => (
-              <tr key={tender.id} className="even:bg-slate-100 odd:bg-white hover:bg-blue-50/80 transition-all duration-200 group divide-x divide-gray-200">
+            ) : tenders.map((tender) => {
+              const diffDays = tender.endDate ? dayjs(tender.endDate).startOf('day').diff(dayjs().startOf('day'), 'day') : null;
+              const isExpired = diffDays !== null && diffDays < 0;
+              const isExpiringSoon = diffDays !== null && diffDays >= 0 && diffDays <= 7;
+              return (
+              <tr key={tender.id} className={`transition-all duration-200 group divide-x divide-gray-200 ${isExpired ? 'bg-red-50 hover:bg-red-100' : 'even:bg-slate-100 odd:bg-white hover:bg-blue-50/80'}`}>
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <span className="text-gray-900 font-medium capitalize flex items-center gap-2">
                     {tender.district}
@@ -232,6 +236,12 @@ export function TenderTable({
                         <div className="flex items-start gap-1.5 p-2 bg-yellow-50/50 rounded-lg border border-yellow-100/50 mt-1">
                           <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                           <p className="text-xs text-gray-700 leading-relaxed italic">{tender.aiSummary}</p>
+                        </div>
+                      ) : tender.aiProcessed ? (
+                        <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded-lg border border-gray-200 mt-1">
+                          <p className="text-xs text-gray-500 leading-relaxed italic text-[11px]">
+                            {tender.aiError ? `AI Error: ${tender.aiError}` : 'AI summary unavailable.'}
+                          </p>
                         </div>
                       ) : (
                         <div className="mt-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 flex items-center gap-2">
@@ -278,12 +288,12 @@ export function TenderTable({
                         </>
                       ) : "N/A"}
                     </span>
-                    <span className="flex items-center gap-1 font-medium text-red-600">
+                    <span className={`flex items-center gap-1 font-medium ${isExpired ? 'text-red-700' : 'text-gray-700'}`}>
                       <Calendar className="w-3 h-3" />
                       End: {tender.endDate ? (
                         <>
                           {dayjs(tender.endDate).format("DD MMM YYYY")}
-                          <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded ml-1 font-bold tracking-wide">
+                          <span className={`text-[10px] border px-1.5 py-0.5 rounded ml-1 font-bold tracking-wide ${isExpired ? 'bg-red-50 text-red-600 border-red-100' : isExpiringSoon ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
                             {getEndText(tender.endDate)}
                           </span>
                         </>
@@ -327,7 +337,8 @@ export function TenderTable({
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

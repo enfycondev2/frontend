@@ -26,8 +26,14 @@ export async function POST() {
     let errorCount = 0;
 
     for (const tender of pendingTenders) {
-      const targetPdf = tender.tenderPdfUrl || tender.noticePdfUrl;
-      
+      // Prioritize PDF over other formats for AI extraction
+      let targetPdf = tender.tenderPdfUrl;
+      if (targetPdf && !targetPdf.toLowerCase().split('?')[0].endsWith('.pdf') && tender.noticePdfUrl?.toLowerCase().split('?')[0].endsWith('.pdf')) {
+        targetPdf = tender.noticePdfUrl;
+      }
+      if (!targetPdf) {
+        targetPdf = tender.noticePdfUrl;
+      }
       try {
         const details = await extractTenderDetailsFromPdf(targetPdf!);
         

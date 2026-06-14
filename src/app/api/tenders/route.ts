@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { DISTRICTS } from "@/lib/scraper/districts";
 
 export async function GET(request: NextRequest) {
   try {
@@ -200,6 +201,9 @@ export async function GET(request: NextRequest) {
           }),
           prisma.tender.groupBy({
             by: ['district'],
+            _count: {
+              _all: true
+            },
             where
           }),
           prisma.tender.count({
@@ -215,7 +219,13 @@ export async function GET(request: NextRequest) {
         
         activeTendersCount = statsResults[0];
         expiringTendersCount = statsResults[1];
-        districtGroups = statsResults[2];
+        
+        const dbDistricts = statsResults[2];
+        districtGroups = DISTRICTS.map(d => {
+          const found = dbDistricts.find(db => db.district.toLowerCase() === d.toLowerCase());
+          return { district: d, _count: { _all: found ? found._count._all : 0 } };
+        });
+        
         highPriorityCount = priority === 'HIGH' ? await totalPromise : statsResults[3];
 
         // Save to cache
@@ -261,6 +271,7 @@ export async function GET(request: NextRequest) {
         expiring: expiringTendersCount,
         highPriority: highPriorityCount,
         districts: districtGroups.length,
+        districtsData: districtGroups,
         pendingQueue,
         page,
         pageSize,

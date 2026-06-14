@@ -5,6 +5,7 @@ import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
 import { SettingsModal } from "@/components/SettingsModal";
+import { DistrictsModal } from "@/components/DistrictsModal";
 import { RefreshCw, LayoutDashboard, LogOut, Settings, ChevronDown, User } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
@@ -17,7 +18,7 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'active', 'expired'
   const [districtFilter, setDistrictFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, highPriority: 0, districts: 0, pendingQueue: 0, totalPages: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, districtsCrawled: 0, districtsData: [] as { district: string; _count: { _all: number } }[], highPriority: 0, pendingQueue: 0, totalPages: 0 });
   const [priorityFilter, setPriorityFilter] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [todayTenders, setTodayTenders] = useState<Tender[]>([]);
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDistrictsModalOpen, setIsDistrictsModalOpen] = useState(false);
   const lastSearchTerm = useRef(searchTerm);
 
   useEffect(() => {
@@ -86,8 +88,9 @@ export default function Dashboard() {
           total: res.data.meta.total,
           active: res.data.meta.active,
           expiring: res.data.meta.expiring,
+          districtsCrawled: res.data.meta.districts || 0,
+          districtsData: res.data.meta.districtsData || [],
           highPriority: res.data.meta.highPriority || 0,
-          districts: res.data.meta.districts,
           pendingQueue: res.data.meta.pendingQueue,
           totalPages: res.data.meta.totalPages
         });
@@ -334,8 +337,9 @@ export default function Dashboard() {
               total={stats.total} 
               active={stats.active} 
               expiring={stats.expiring} 
-              districts={stats.districts}
+              districts={stats.districtsCrawled}
               onFilterClick={setActiveFilter}
+              onDistrictsClick={() => setIsDistrictsModalOpen(true)}
             />
 
             {todayTenders.length > 0 && (
@@ -422,6 +426,17 @@ export default function Dashboard() {
             fetchTenders();
           }
         }} 
+      />
+
+      {/* Districts Modal */}
+      <DistrictsModal
+        isOpen={isDistrictsModalOpen}
+        onClose={() => setIsDistrictsModalOpen(false)}
+        districtsData={stats.districtsData || []}
+        onSelectDistrict={(district) => {
+          setDistrictFilter(district);
+          setIsDistrictsModalOpen(false);
+        }}
       />
     </div>
   );

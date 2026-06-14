@@ -18,7 +18,7 @@ export default function Login() {
       (username === "admin" && password === "Admin@2026");
 
     if (isValid) {
-      document.cookie = "auth=" + username + "; path=/;";
+      document.cookie = `auth=${username}; path=/; max-age=${30 * 24 * 60 * 60};`;
       router.push("/dashboard");
     } else {
       setError("Invalid username or password");
