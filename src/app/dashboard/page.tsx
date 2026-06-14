@@ -263,7 +263,13 @@ export default function Dashboard() {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (activeTab !== tab.id) {
+                      setTenders([]);
+                      setPage(1);
+                      setActiveTab(tab.id);
+                    }
+                  }}
                   className={`whitespace-nowrap lg:h-full py-2 lg:py-0 border-b-2 font-medium text-sm transition-colors flex items-center ${
                     activeTab === tab.id
                       ? "border-blue-600 text-blue-600"
