@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
+import { SettingsModal } from "@/components/SettingsModal";
 import { RefreshCw, LayoutDashboard, LogOut, Settings, ChevronDown, User } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [tableTotalPages, setTableTotalPages] = useState(1);
   const [username, setUsername] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const lastSearchTerm = useRef(searchTerm);
 
   useEffect(() => {
@@ -284,14 +286,16 @@ export default function Dashboard() {
 
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 overflow-hidden">
-                    <Link
-                      href="/dashboard/settings"
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
+                    <button
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setDropdownOpen(false);
+                      }}
                     >
                       <Settings className="w-4 h-4 shrink-0" />
                       Settings
-                    </Link>
+                    </button>
                     <button
                       onClick={() => {
                         document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -403,10 +407,22 @@ export default function Dashboard() {
             page={page}
             totalPages={tableTotalPages}
             onPageChange={setPage}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
         )}
       </main>
       
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={(changed) => {
+          setIsSettingsOpen(false);
+          if (changed) {
+            // Re-fetch tenders and stats to reflect new keywords
+            fetchTenders();
+          }
+        }} 
+      />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export function parseTenderPage(html: string, district: string, sourceUrl: strin
       if (dateMatches) {
         if (dateMatches.length >= 2) {
           startDateStr = dateMatches[0];
-          endDateStr = dateMatches[dateMatches.length - 1]; // End date is the last date found
+          endDateStr = dateMatches[1]; // Use the second date found, not the last, to avoid matching filenames
         } else {
           endDateStr = dateMatches[0]; // If only one date, it's the closing date
         }
@@ -60,21 +60,23 @@ export function parseTenderPage(html: string, district: string, sourceUrl: strin
         description = nonDateTexts[0];
       }
 
+      // Use strict parsing for dayjs to avoid carrying over invalid months like 26 into years
       if (startDateStr) {
-        const parsed = dayjs(startDateStr, ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"], false);
+        const parsed = dayjs(startDateStr, ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"], true);
         if (parsed.isValid()) startDate = parsed.toDate();
       }
       
       if (endDateStr) {
-        const parsed = dayjs(endDateStr, ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"], false);
+        const parsed = dayjs(endDateStr, ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"], true);
         if (parsed.isValid()) endDate = parsed.toDate();
       }
 
-      // Find PDF links in the row
+      // Find Document links in the row
       const links: string[] = [];
+      const validExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".rar", ".7z"];
       $(row).find("a").each((_, a) => {
         const href = $(a).attr("href");
-        if (href && href.toLowerCase().endsWith(".pdf")) {
+        if (href && validExtensions.some(ext => href.toLowerCase().endsWith(ext))) {
           try {
             const absoluteUrl = new URL(href, sourceUrl).toString();
             links.push(absoluteUrl);

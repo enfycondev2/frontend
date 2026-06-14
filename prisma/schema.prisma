@@ -9,6 +9,7 @@ datasource db {
 
 model Tender {
   id              String   @id @default(uuid())
+  localId         Int      @default(autoincrement())
 
   district        String
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Tender } from "@prisma/client";
 import dayjs from "dayjs";
-import { Download, ExternalLink, Calendar, Search, Star, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, Zap, Flame } from "lucide-react";
+import { Download, ExternalLink, Calendar, Search, Star, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, Zap, Flame, Settings } from "lucide-react";
 import axios from "axios";
 
 import { DISTRICTS } from "@/lib/scraper/districts";
@@ -55,6 +55,7 @@ interface TenderTableProps {
   totalPages?: number;
   onPageChange?: (page: number) => void;
   hideControls?: boolean;
+  onOpenSettings?: () => void;
 }
 
 export function TenderTable({
@@ -73,7 +74,8 @@ export function TenderTable({
   page,
   totalPages,
   onPageChange,
-  hideControls = false
+  hideControls = false,
+  onOpenSettings
 }: TenderTableProps) {
   const [tenders, setTenders] = useState<ExtendedTender[]>(initialTenders);
 
@@ -170,6 +172,17 @@ export function TenderTable({
           >
             🔥 High Priority {highPriorityCount !== undefined && highPriorityCount > 0 ? `(${highPriorityCount})` : ''}
           </button>
+          
+          {onOpenSettings && (
+            <button 
+              onClick={onOpenSettings}
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm transition-colors text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1.5 shrink-0"
+              title="Modify Priority Keywords"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Modify Keywords</span>
+            </button>
+          )}
         </div>
       </div>
       )}
@@ -177,14 +190,14 @@ export function TenderTable({
       {/* Table */}
       <div className="max-md:overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-200 mt-6">
         <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
-          <thead className="bg-gradient-to-r from-gray-50 to-white text-gray-700 font-semibold border-b border-gray-300 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
-            <tr className="divide-x divide-gray-300">
-              <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-gray-500">District</th>
-              <th className="px-5 py-4 w-[40%] text-xs uppercase tracking-wider text-gray-500">Title & AI Summary</th>
-              <th className="px-5 py-4 w-[18%] text-xs uppercase tracking-wider text-gray-500">Financials</th>
-              <th className="px-5 py-4 w-[15%] text-xs uppercase tracking-wider text-gray-500">Timeline</th>
-              <th className="px-5 py-4 w-[10%] text-center text-xs uppercase tracking-wider text-gray-500">Documents</th>
-              <th className="px-5 py-4 w-[8%] text-center text-xs uppercase tracking-wider text-gray-500">Actions</th>
+          <thead className="bg-slate-800 text-white font-semibold border-b border-slate-700 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
+            <tr className="divide-x divide-slate-700">
+              <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-slate-300">District</th>
+              <th className="px-5 py-4 w-[40%] text-xs uppercase tracking-wider text-slate-300">Title & AI Summary</th>
+              <th className="px-5 py-4 w-[18%] text-xs uppercase tracking-wider text-slate-300">Financials</th>
+              <th className="px-5 py-4 w-[15%] text-xs uppercase tracking-wider text-slate-300">Timeline</th>
+              <th className="px-5 py-4 w-[10%] text-center text-xs uppercase tracking-wider text-slate-300">Documents</th>
+              <th className="px-5 py-4 w-[8%] text-center text-xs uppercase tracking-wider text-slate-300">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -198,7 +211,6 @@ export function TenderTable({
               <tr key={tender.id} className="even:bg-slate-100 odd:bg-white hover:bg-blue-50/80 transition-all duration-200 group divide-x divide-gray-200">
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <span className="text-gray-900 font-medium capitalize flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                     {tender.district}
                   </span>
                 </td>

@@ -154,20 +154,24 @@ export async function GET(request: NextRequest) {
     let highPriorityCount = 0;
 
     const globalForStats = global as unknown as { 
-      cachedStats: any; 
-      lastStatsFetch: number; 
+      statsCache: Map<string, { data: any, timestamp: number }>;
     };
+    if (!globalForStats.statsCache) {
+      globalForStats.statsCache = new Map();
+    }
 
     // Only run heavy stats queries when explicitly requested
     if (includeStats === "true") {
       const nowTime = Date.now();
+      const cacheKey = JSON.stringify({ where, keywords: keywordList });
+      const cached = globalForStats.statsCache.get(cacheKey);
       
       // Use cache if available and less than 5 minutes old
-      if (globalForStats.cachedStats && nowTime - (globalForStats.lastStatsFetch || 0) < 5 * 60 * 1000) {
-        activeTendersCount = globalForStats.cachedStats.active;
-        expiringTendersCount = globalForStats.cachedStats.expiring;
-        districtGroups = globalForStats.cachedStats.districts;
-        highPriorityCount = globalForStats.cachedStats.highPriority;
+      if (cached && nowTime - cached.timestamp < 5 * 60 * 1000) {
+        activeTendersCount = cached.data.active;
+        expiringTendersCount = cached.data.expiring;
+        districtGroups = cached.data.districts;
+        highPriorityCount = cached.data.highPriority;
       } else {
         const keywordConditions = keywordList.length > 0 ? [
           { tags: { hasSome: keywordList } },
@@ -215,13 +219,15 @@ export async function GET(request: NextRequest) {
         highPriorityCount = priority === 'HIGH' ? await totalPromise : statsResults[3];
 
         // Save to cache
-        globalForStats.cachedStats = {
-          active: activeTendersCount,
-          expiring: expiringTendersCount,
-          districts: districtGroups,
-          highPriority: highPriorityCount
-        };
-        globalForStats.lastStatsFetch = nowTime;
+        globalForStats.statsCache.set(cacheKey, {
+          data: {
+            active: activeTendersCount,
+            expiring: expiringTendersCount,
+            districts: districtGroups,
+            highPriority: highPriorityCount
+          },
+          timestamp: nowTime
+        });
       }
     }
 
