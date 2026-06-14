@@ -153,52 +153,76 @@ export async function GET(request: NextRequest) {
     let districtGroups: any[] = [];
     let highPriorityCount = 0;
 
+    const globalForStats = global as unknown as { 
+      cachedStats: any; 
+      lastStatsFetch: number; 
+    };
+
     // Only run heavy stats queries when explicitly requested
     if (includeStats === "true") {
+      const nowTime = Date.now();
       
-      const keywordConditions = keywordList.length > 0 ? [
-        { tags: { hasSome: keywordList } },
-        ...keywordList.map(kw => ({ title: { contains: kw, mode: 'insensitive' as const } })),
-        ...keywordList.map(kw => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
-      ] : [];
+      // Use cache if available and less than 5 minutes old
+      if (globalForStats.cachedStats && nowTime - (globalForStats.lastStatsFetch || 0) < 5 * 60 * 1000) {
+        activeTendersCount = globalForStats.cachedStats.active;
+        expiringTendersCount = globalForStats.cachedStats.expiring;
+        districtGroups = globalForStats.cachedStats.districts;
+        highPriorityCount = globalForStats.cachedStats.highPriority;
+      } else {
+        const keywordConditions = keywordList.length > 0 ? [
+          { tags: { hasSome: keywordList } },
+          ...keywordList.map(kw => ({ title: { contains: kw, mode: 'insensitive' as const } })),
+          ...keywordList.map(kw => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
+        ] : [];
 
-      const statsResults = await Promise.all([
-        prisma.tender.count({
-          where: {
-            ...where,
-            OR: [
-              { endDate: { gte: now } },
-              { endDate: null }
-            ]
-          }
-        }),
-        prisma.tender.count({
-          where: {
-            ...where,
-            endDate: {
-              gte: now,
-              lte: in7Days
+        const statsResults = await Promise.all([
+          prisma.tender.count({
+            where: {
+              ...where,
+              OR: [
+                { endDate: { gte: now } },
+                { endDate: null }
+              ]
             }
-          }
-        }),
-        prisma.tender.groupBy({
-          by: ['district'],
-          where
-        }),
-        prisma.tender.count({
-          where: {
-            ...where,
-            AND: [
-              ...(where.AND || []),
-              ...(keywordConditions.length > 0 ? [{ OR: keywordConditions }] : [{ id: "NONE" }])
-            ]
-          }
-        })
-      ]);
-      activeTendersCount = statsResults[0];
-      expiringTendersCount = statsResults[1];
-      districtGroups = statsResults[2];
-      highPriorityCount = priority === 'HIGH' ? await totalPromise : statsResults[3];
+          }),
+          prisma.tender.count({
+            where: {
+              ...where,
+              endDate: {
+                gte: now,
+                lte: in7Days
+              }
+            }
+          }),
+          prisma.tender.groupBy({
+            by: ['district'],
+            where
+          }),
+          prisma.tender.count({
+            where: {
+              ...where,
+              AND: [
+                ...(where.AND || []),
+                ...(keywordConditions.length > 0 ? [{ OR: keywordConditions }] : [{ id: "NONE" }])
+              ]
+            }
+          })
+        ]);
+        
+        activeTendersCount = statsResults[0];
+        expiringTendersCount = statsResults[1];
+        districtGroups = statsResults[2];
+        highPriorityCount = priority === 'HIGH' ? await totalPromise : statsResults[3];
+
+        // Save to cache
+        globalForStats.cachedStats = {
+          active: activeTendersCount,
+          expiring: expiringTendersCount,
+          districts: districtGroups,
+          highPriority: highPriorityCount
+        };
+        globalForStats.lastStatsFetch = nowTime;
+      }
     }
 
     const [tenders, total, pendingQueue] = await Promise.all([

@@ -30,6 +30,14 @@ export interface ExtendedTender extends Tender {
   isHighPriority?: boolean;
 }
 
+const formatPrice = (val: string | null | undefined) => {
+  if (!val) return "N/A";
+  const trimmed = val.trim();
+  if (!trimmed || trimmed.toUpperCase() === "N/A" || trimmed.toUpperCase() === "NIL" || trimmed.toUpperCase() === "NA") return trimmed || "N/A";
+  if (/^rs\.?\s*/i.test(trimmed) || /^inr\s*/i.test(trimmed) || /^₹/i.test(trimmed)) return trimmed;
+  return `Rs. ${trimmed}`;
+};
+
 interface TenderTableProps {
   tenders: ExtendedTender[];
   searchTerm: string;
@@ -167,10 +175,10 @@ export function TenderTable({
       )}
 
       {/* Table */}
-      <div className="max-md:overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-100 mt-6">
+      <div className="max-md:overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-200 mt-6">
         <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
-          <thead className="bg-gradient-to-r from-gray-50 to-white text-gray-700 font-semibold border-b border-gray-200 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
-            <tr>
+          <thead className="bg-gradient-to-r from-gray-50 to-white text-gray-700 font-semibold border-b border-gray-300 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
+            <tr className="divide-x divide-gray-300">
               <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-gray-500">District</th>
               <th className="px-5 py-4 w-[40%] text-xs uppercase tracking-wider text-gray-500">Title & AI Summary</th>
               <th className="px-5 py-4 w-[18%] text-xs uppercase tracking-wider text-gray-500">Financials</th>
@@ -179,15 +187,15 @@ export function TenderTable({
               <th className="px-5 py-4 w-[8%] text-center text-xs uppercase tracking-wider text-gray-500">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-200">
             {tenders.length === 0 ? (
-              <tr>
+              <tr className="divide-x divide-gray-200">
                 <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                   No tenders found. Try adjusting your filters or run the scraper.
                 </td>
               </tr>
             ) : tenders.map((tender) => (
-              <tr key={tender.id} className="even:bg-blue-50/30 odd:bg-white hover:bg-blue-50/80 transition-all duration-200 group">
+              <tr key={tender.id} className="even:bg-slate-100 odd:bg-white hover:bg-blue-50/80 transition-all duration-200 group divide-x divide-gray-200">
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <span className="text-gray-900 font-medium capitalize flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
@@ -232,15 +240,15 @@ export function TenderTable({
                   <div className="flex flex-col gap-3 text-xs">
                     <div className="flex flex-col">
                       <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">Est. Value</span>
-                      <span className="text-emerald-600 font-semibold break-words" title={tender.tenderValue || "N/A"}>{tender.tenderValue || "N/A"}</span>
+                      <span className="text-emerald-600 font-semibold break-words" title={formatPrice(tender.tenderValue)}>{formatPrice(tender.tenderValue)}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">EMD</span>
-                      <span className="text-blue-600 font-semibold break-words" title={tender.emd || "N/A"}>{tender.emd || "N/A"}</span>
+                      <span className="text-blue-600 font-semibold break-words" title={formatPrice(tender.emd)}>{formatPrice(tender.emd)}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">App Cost</span>
-                      <span className="text-purple-600 font-semibold break-words" title={tender.applicationCost || "N/A"}>{tender.applicationCost || "N/A"}</span>
+                      <span className="text-gray-400 font-medium text-[10px] uppercase tracking-wider">Application Cost</span>
+                      <span className="text-purple-600 font-semibold break-words" title={formatPrice(tender.applicationCost)}>{formatPrice(tender.applicationCost)}</span>
                     </div>
                   </div>
                 </td>
@@ -271,8 +279,8 @@ export function TenderTable({
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-4 whitespace-normal">
-                  <div className="flex flex-wrap gap-2">
+                <td className="px-4 py-4 whitespace-normal align-top">
+                  <div className="flex flex-col items-start gap-2">
                     {tender.noticePdfUrl && (
                       <a href={tender.noticePdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded">
                         <Download className="w-3 h-3" /> Notice
@@ -286,7 +294,7 @@ export function TenderTable({
                   </div>
                 </td>
                 <td className="px-5 py-5 whitespace-normal align-top">
-                  <div className="flex items-center justify-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <div className="flex flex-col items-center justify-start pt-1 gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => toggleApplied(tender.id, !!tender.isApplied)}
                       className={`transition-all hover:scale-110 ${tender.isApplied ? 'text-emerald-500 drop-shadow-sm' : 'text-gray-300 hover:text-emerald-400'}`}
