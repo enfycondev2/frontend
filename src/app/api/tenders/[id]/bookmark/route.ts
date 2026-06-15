@@ -20,7 +20,7 @@ export async function PATCH(
       data: { isBookmarked },
     });
 
-    revalidateTag("tenders");
+    revalidateTag("tenders", "default");
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {

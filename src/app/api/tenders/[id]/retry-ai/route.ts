@@ -24,7 +24,7 @@ export async function PATCH(
     }
 
     // Flush cache so UI gets fresh data
-    revalidateTag("tenders");
+    revalidateTag("tenders", "default");
 
     return NextResponse.json({ success: true });
   } catch (error) {
