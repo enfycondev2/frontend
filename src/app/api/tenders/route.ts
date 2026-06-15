@@ -188,8 +188,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[GET /api/tenders] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error', 
+      details: error?.message || String(error),
+      stack: error?.stack 
+    }, { status: 500 });
   }
 }
