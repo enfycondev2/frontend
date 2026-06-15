@@ -1,19 +1,42 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
-  const authCookie = request.cookies.get('auth');
+  const { pathname } = request.nextUrl
+  
+  // Protect all API routes
+  if (pathname.startsWith('/api')) {
+    const authCookie = request.cookies.get('auth')
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
 
-  // Protect /dashboard and /
-  if (request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!authCookie || !authCookie.value) {
-      return NextResponse.redirect(new URL('/login', request.url));
+    const isFrontendUser = !!authCookie?.value
+    const isCronJob = cronSecret && authHeader === `Bearer ${cronSecret}`
+
+    if (!isFrontendUser && !isCronJob) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized Access' },
+        { status: 401 }
+      )
     }
   }
 
-  return NextResponse.next();
+  // Protect the dashboard and root page
+  if (pathname === '/' || pathname.startsWith('/dashboard')) {
+    const authCookie = request.cookies.get('auth')
+    if (!authCookie?.value) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
+  return NextResponse.next()
 }
 
+// Configure the paths where this proxy should run
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-};
+  matcher: [
+    '/',
+    '/api/:path*',
+    '/dashboard/:path*'
+  ],
+}
