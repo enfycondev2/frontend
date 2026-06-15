@@ -21,7 +21,7 @@ export async function POST() {
       take: 3,
     });
 
-    const allPending = [...pendingTenders.map(t => ({...t, isState: false})), ...pendingStateTenders.map(t => ({...t, isState: true}))].slice(0, 3);
+    const allPending = [...pendingTenders.map(t => ({...t, isState: false})), ...pendingStateTenders.map(t => ({...t, isState: true}))].slice(0, 2);
 
     if (allPending.length === 0) {
       return NextResponse.json({ success: true, processed: 0, message: "Queue is empty." });
