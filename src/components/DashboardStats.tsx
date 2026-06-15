@@ -1,4 +1,4 @@
-import { FileText, CheckCircle, Clock, MapPin } from "lucide-react";
+import { FileText, CheckCircle, Clock, MapPin, Bot } from "lucide-react";
 
 interface DashboardStatsProps {
   total: number;
@@ -8,9 +8,10 @@ interface DashboardStatsProps {
   onFilterClick: (filter: string) => void;
   onDistrictsClick: () => void;
   typeLabel?: string;
+  pendingQueue?: number;
 }
 
-export function DashboardStats({ total, active, expiring, districts, onFilterClick, onDistrictsClick, typeLabel = "District" }: DashboardStatsProps) {
+export function DashboardStats({ total, active, expiring, districts, onFilterClick, onDistrictsClick, typeLabel = "District", pendingQueue = 0 }: DashboardStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <StatCard 
@@ -19,6 +20,14 @@ export function DashboardStats({ total, active, expiring, districts, onFilterCli
         icon={<FileText className="w-6 h-6 text-blue-500" />} 
         bgColor="bg-blue-50" 
         onClick={() => onFilterClick && onFilterClick('all')}
+        subtext={
+          pendingQueue > 0 ? (
+            <div className="flex items-center gap-1 mt-1 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md w-max border border-indigo-100">
+              <Bot className="w-3 h-3 animate-pulse" />
+              AI Analysing: {pendingQueue}
+            </div>
+          ) : undefined
+        }
       />
       <StatCard 
         title="Active Tenders" 
@@ -45,18 +54,19 @@ export function DashboardStats({ total, active, expiring, districts, onFilterCli
   );
 }
 
-function StatCard({ title, value, icon, bgColor, onClick }: { title: string; value: number; icon: React.ReactNode; bgColor: string; onClick?: () => void }) {
+function StatCard({ title, value, icon, bgColor, onClick, subtext }: { title: string; value: number; icon: React.ReactNode; bgColor: string; onClick?: () => void; subtext?: React.ReactNode }) {
   return (
     <div 
       onClick={onClick}
       className={`bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex items-center space-x-4 transition-all hover:shadow-md ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:border-blue-200' : ''}`}
     >
-      <div className={`p-4 rounded-full ${bgColor}`}>
+      <div className={`p-4 rounded-full shrink-0 ${bgColor}`}>
         {icon}
       </div>
       <div>
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <p className="text-3xl font-bold text-gray-900">{value}</p>
+        {subtext}
       </div>
     </div>
   );

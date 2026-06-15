@@ -38,6 +38,26 @@ const formatPrice = (val: string | null | undefined) => {
   return `Rs. ${trimmed}`;
 };
 
+const formatOrgText = (orgStr: string) => {
+  if (!orgStr || typeof orgStr !== 'string') return orgStr;
+  if (!orgStr.includes('||')) return orgStr;
+  const parts = orgStr.split('||').map(s => s.trim());
+  return parts.join(' › ');
+};
+
+const renderOrganisation = (orgStr: string) => {
+  if (!orgStr) return "N/A";
+  if (!orgStr.includes('||')) return <span className="font-medium flex items-center gap-2">{orgStr}</span>;
+  const parts = orgStr.split('||').map(s => s.trim());
+  const lastPart = parts.pop();
+  return (
+    <div className="flex flex-col gap-1 mt-0.5">
+      <span className="text-[10px] text-gray-500 font-medium leading-tight uppercase tracking-wider">{parts.join(' › ')}</span>
+      <span className="text-[13px] font-bold text-gray-900 leading-tight uppercase">{lastPart}</span>
+    </div>
+  );
+};
+
 interface TenderTableProps {
   tenders: ExtendedTender[];
   searchTerm: string;
@@ -147,7 +167,7 @@ export function TenderTable({
             <option value="">All {typeLabel}s</option>
             {(organisations || DISTRICTS).map((dist) => (
               <option key={dist} value={dist} className="capitalize">
-                {dist}
+                {typeLabel === 'Organisation' ? formatOrgText(dist) : dist}
               </option>
             ))}
           </select>
@@ -194,7 +214,7 @@ export function TenderTable({
       {/* Table */}
       <div className="max-md:overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-200 mt-6">
         <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
-          <thead className="bg-slate-800 text-white font-semibold border-b border-slate-700 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
+          <thead className={`bg-slate-800 text-white font-semibold border-b border-slate-700 sticky z-20 ${hideControls ? 'top-[60px] lg:top-[64px]' : 'top-[60px] md:top-[148px] lg:top-[152px]'}`}>
             <tr className="divide-x divide-slate-700">
               <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-slate-300">{typeLabel}</th>
               <th className="px-5 py-4 w-[40%] text-xs uppercase tracking-wider text-slate-300">Title & AI Summary</th>
@@ -218,9 +238,9 @@ export function TenderTable({
               return (
               <tr key={tender.id} className={`transition-all duration-200 group divide-x divide-gray-200 ${isExpired ? 'bg-red-50 hover:bg-red-100' : 'even:bg-slate-100 odd:bg-white hover:bg-blue-50/80'}`}>
                 <td className="px-5 py-5 whitespace-normal align-top">
-                  <span className="text-gray-900 font-medium capitalize flex items-center gap-2">
-                    {tender.district}
-                  </span>
+                  <div className="text-gray-900 capitalize">
+                    {typeLabel === 'Organisation' ? renderOrganisation(tender.district) : <span className="font-medium flex items-center gap-2">{tender.district}</span>}
+                  </div>
                 </td>
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <div className="flex flex-col gap-2">
