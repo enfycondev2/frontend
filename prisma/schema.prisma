@@ -67,3 +67,9 @@ model PriorityKeyword {
   word      String   @unique
   createdAt DateTime @default(now())
 }
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

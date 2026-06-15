@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Settings, Plus, X, Zap, Info } from "lucide-react";
+import { Settings, Plus, X, Zap, Info, RefreshCw } from "lucide-react";
 
 interface Keyword {
   id: string;
@@ -21,6 +21,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [scrapeInterval, setScrapeInterval] = useState<number>(6);
+  const [updatingInterval, setUpdatingInterval] = useState(false);
 
   const fetchKeywords = async () => {
     try {
@@ -29,9 +31,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       if (res.data.success) {
         setKeywords(res.data.data);
       }
+      const resSettings = await axios.get("/api/settings");
+      if (resSettings.data.success) {
+        setScrapeInterval(resSettings.data.scrapeIntervalHours);
+      }
     } catch (err) {
       console.error(err);
-      setError("Failed to load keywords.");
+      setError("Failed to load settings.");
     } finally {
       setLoading(false);
     }
@@ -74,6 +80,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       console.error(err);
       setError("Failed to delete keyword.");
       fetchKeywords(); // Revert optimistic UI on failure
+    }
+  };
+
+  const handleUpdateInterval = async (hours: number) => {
+    try {
+      setUpdatingInterval(true);
+      setScrapeInterval(hours);
+      await axios.post("/api/settings", { scrapeIntervalHours: hours });
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update scrape interval.");
+    } finally {
+      setUpdatingInterval(false);
     }
   };
 
@@ -167,6 +186,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <hr className="my-8 border-gray-100" />
+
+          {/* Scrape Interval Setting */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              Auto-Scrape Interval
+            </h4>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Choose how often the background automation script should check for new tenders.
+            </p>
+            <div className="flex items-center gap-4">
+              <select
+                value={scrapeInterval}
+                onChange={(e) => handleUpdateInterval(Number(e.target.value))}
+                disabled={loading || updatingInterval}
+                className="w-full sm:w-64 px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:opacity-50"
+              >
+                <option value={1}>Every 1 Hour</option>
+                <option value={6}>Every 6 Hours</option>
+                <option value={12}>Every 12 Hours</option>
+                <option value={24}>Every 24 Hours</option>
+                <option value={0}>Disabled (Manual Only)</option>
+              </select>
+              {updatingInterval && <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />}
+            </div>
           </div>
         </div>
         

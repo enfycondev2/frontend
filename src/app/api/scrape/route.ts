@@ -4,6 +4,18 @@ import { DISTRICTS } from "@/lib/scraper/districts";
 
 export async function POST(req: NextRequest) {
   try {
+    // Basic authentication: requires either a frontend 'auth' cookie or a valid CRON_SECRET header
+    const authCookie = req.cookies.get("auth");
+    const authHeader = req.headers.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
+    
+    const isFrontendUser = !!authCookie?.value;
+    const isCronJob = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+    if (!isFrontendUser && !isCronJob) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     let targetDistrict: string | null = null;
     
     // Parse optional JSON body for a specific district
