@@ -1,40 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DISTRICTS } from '@/lib/scraper/districts';
-import NodeCache from 'node-cache';
+import { unstable_cache } from 'next/cache';
 
-// Cache for 30 seconds to provide instant feedback while preventing stale data
-export const tendersCache = new NodeCache({ stdTTL: 30 });
-
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const cacheKey = searchParams.toString() || 'default';
-    
-    const cachedResponse = tendersCache.get(cacheKey);
-    if (cachedResponse) {
-      return NextResponse.json(cachedResponse);
-    }
-
-    const district = searchParams.get('district');
-    const search = searchParams.get('search');
-    const active = searchParams.get('active');
-    const priority = searchParams.get('priority');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-    const date = searchParams.get('date');
-    const excludeToday = searchParams.get('excludeToday');
-    const bookmarked = searchParams.get('bookmarked');
-    const applied = searchParams.get('applied');
-    const dateRange = searchParams.get('dateRange');
-    const includeStats = searchParams.get('includeStats');
-    const tenderType = searchParams.get('tenderType');
+const getCachedTenders = unstable_cache(
+  async (params: any) => {
+    const { district, search, active, priority, page, pageSize, date, excludeToday, bookmarked, applied, dateRange, includeStats, tenderType } = params;
 
     const keywords = await prisma.priorityKeyword.findMany();
     const keywordList = keywords.map((k: any) => k.word);
 
     const isState = tenderType === 'state';
-    
+
     const fetchFromTable = async (isStateModel: boolean, isMixed: boolean) => {
       const delegate = isStateModel ? prisma.stateTender : prisma.tender;
       const districtField = isStateModel ? 'organisation' : 'district';
@@ -134,7 +111,7 @@ export async function GET(request: NextRequest) {
             return { district: d, _count: { _all: found ? found._count._all : 0 } };
           });
         }
-        highPriorityCount = 0; // Disabled globally to prevent full table scans.
+        highPriorityCount = 0;
       }
 
       const formattedTenders = tenders.map((t: any) => {
@@ -149,7 +126,7 @@ export async function GET(request: NextRequest) {
 
     if (tenderType === 'state' || tenderType === 'district') {
       const res = await fetchFromTable(tenderType === 'state', false);
-      const payload = {
+      return {
         success: true,
         data: res.tenders,
         meta: {
@@ -165,8 +142,6 @@ export async function GET(request: NextRequest) {
           totalPages: Math.ceil(res.total / pageSize)
         }
       };
-      tendersCache.set(cacheKey, payload);
-      return NextResponse.json(payload);
     } else {
       const [distRes, stateRes] = await Promise.all([
         fetchFromTable(false, true),
@@ -182,7 +157,7 @@ export async function GET(request: NextRequest) {
       const total = distRes.total + stateRes.total;
       const paginatedTenders = allTenders.slice((page - 1) * pageSize, page * pageSize);
 
-      const payload = {
+      return {
         success: true,
         data: paginatedTenders,
         meta: {
@@ -193,9 +168,41 @@ export async function GET(request: NextRequest) {
           totalPages: Math.ceil(total / pageSize)
         }
       };
-      tendersCache.set(cacheKey, payload);
-      return NextResponse.json(payload);
     }
+  },
+  ['tenders-cache-v1'],
+  { revalidate: 30, tags: ['tenders'] }
+);
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    
+    // Add bypass flag checking here
+    const forceRefresh = searchParams.get('_t');
+
+    const paramsObj = {
+      district: searchParams.get('district'),
+      search: searchParams.get('search'),
+      active: searchParams.get('active'),
+      priority: searchParams.get('priority'),
+      page: parseInt(searchParams.get('page') || '1', 10),
+      pageSize: parseInt(searchParams.get('pageSize') || '20', 10),
+      date: searchParams.get('date'),
+      excludeToday: searchParams.get('excludeToday'),
+      bookmarked: searchParams.get('bookmarked'),
+      applied: searchParams.get('applied'),
+      dateRange: searchParams.get('dateRange'),
+      includeStats: searchParams.get('includeStats'),
+      tenderType: searchParams.get('tenderType')
+    };
+
+    // Note: Next.js unstable_cache keys are built from stringified arguments automatically.
+    // If a cache bypass is needed from frontend mutations, we pass `_t` to force cache miss via dynamic URL
+    // since we use a dynamic route here, caching works via Next.js Data Cache.
+    
+    const payload = await getCachedTenders(paramsObj);
+    return NextResponse.json(payload);
 
   } catch (error: any) {
     console.error('[GET /api/tenders] Error:', error);

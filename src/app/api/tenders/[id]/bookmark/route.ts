@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { tendersCache } from "@/app/api/tenders/route";
+import { revalidateTag } from "next/cache";
 
 export async function PATCH(
   request: NextRequest,
@@ -20,7 +20,7 @@ export async function PATCH(
       data: { isBookmarked },
     });
 
-    tendersCache.flushAll();
+    revalidateTag("tenders");
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
