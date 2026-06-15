@@ -105,16 +105,10 @@ export async function GET(request: NextRequest) {
       let activeCount = 0, expiringCount = 0, distGroups: any[] = [], highPriorityCount = 0;
 
       if (includeStats === 'true' && !isMixed) {
-        const keywordConditions = keywordList.length > 0 ? [
-          { tags: { hasSome: keywordList } },
-          ...keywordList.map((kw: string) => ({ title: { contains: kw, mode: 'insensitive' as const } })),
-          ...keywordList.map((kw: string) => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
-        ] : [];
         const statsResults = await Promise.all([
           (delegate as any).count({ where: { ...where, OR: [{ endDate: { gte: now } }, { endDate: null }] } }),
           (delegate as any).count({ where: { ...where, endDate: { gte: now, lte: in7Days } } }),
-          (delegate as any).groupBy({ by: [districtField], _count: { _all: true }, where }),
-          (delegate as any).count({ where: { ...where, AND: [...(where.AND || []), ...(keywordConditions.length > 0 ? [{ OR: keywordConditions }] : [{ id: 'NONE' }])] } })
+          (delegate as any).groupBy({ by: [districtField], _count: { _all: true }, where })
         ]);
         activeCount = statsResults[0];
         expiringCount = statsResults[1];
@@ -129,7 +123,7 @@ export async function GET(request: NextRequest) {
             return { district: d, _count: { _all: found ? found._count._all : 0 } };
           });
         }
-        highPriorityCount = priority === 'HIGH' ? total : statsResults[3];
+        highPriorityCount = 0; // Disabled globally to prevent full table scans.
       }
 
       const formattedTenders = tenders.map((t: any) => {

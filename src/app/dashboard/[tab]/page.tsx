@@ -81,8 +81,8 @@ export default function Dashboard() {
         else params.append("excludeToday", "true");
       }
       
-      // Only request heavy stats calculations when no filters are applied
-      if (!searchTerm && !districtFilter && activeFilter === "all" && !priorityFilter) {
+      // Only request heavy stats calculations when no filters are applied and we are on a tab that shows stats
+      if (!searchTerm && !districtFilter && activeFilter === "all" && !priorityFilter && (activeTab === "district" || activeTab === "state")) {
         params.append("includeStats", "true");
       }
       
@@ -159,6 +159,8 @@ export default function Dashboard() {
   }, [searchTerm, activeFilter, districtFilter, priorityFilter, dateFilter, activeTab, page, viewType]);
 
   useEffect(() => {
+    if (activeTab !== "district" && activeTab !== "state") return;
+    
     // We already have a debounce for fetchTenders, so we'll just piggyback on it
     // but we can also just use a simple timeout here if we want it isolated.
     const timer = setTimeout(() => {
