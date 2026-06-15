@@ -17,5 +17,6 @@ export interface ScrapeResult {
   district: string;
   success: boolean;
   tenders: ParsedTender[];
+  newTendersCount?: number;
   error?: string;
 }

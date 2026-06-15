@@ -98,6 +98,8 @@ model ScrapeLog {
 
   error         String?
 
+  source        String   @default("AUTO")
+
   createdAt     DateTime @default(now())
 }
 

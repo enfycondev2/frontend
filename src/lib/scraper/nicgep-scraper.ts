@@ -6,7 +6,7 @@ import { ScrapeResult, TenderSchema } from "./types";
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const STATE_URL = "https://tendersodisha.gov.in/nicgep/app?page=FrontEndTendersByOrganisation&service=page";
 
-export async function scrapeStateTenders(): Promise<ScrapeResult> {
+export async function scrapeStateTenders(source: string = "AUTO"): Promise<ScrapeResult> {
   const district = "State Level"; // Logical district name for logging
   try {
     console.log("[NICGEP] Fetching homepage to initialize session...");
@@ -138,6 +138,7 @@ export async function scrapeStateTenders(): Promise<ScrapeResult> {
         district,
         status: "SUCCESS",
         tendersFound: allValidTenders.length,
+        source,
       }
     });
 
@@ -145,6 +146,7 @@ export async function scrapeStateTenders(): Promise<ScrapeResult> {
       district,
       success: true,
       tenders: allValidTenders,
+      newTendersCount,
     };
 
   } catch (error) {
@@ -155,7 +157,8 @@ export async function scrapeStateTenders(): Promise<ScrapeResult> {
         district,
         status: "FAILED",
         tendersFound: 0,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
+        source,
       }
     });
 
@@ -164,6 +167,7 @@ export async function scrapeStateTenders(): Promise<ScrapeResult> {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
       tenders: [],
+      newTendersCount: 0,
     };
   }
 }

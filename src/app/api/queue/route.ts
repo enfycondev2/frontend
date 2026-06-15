@@ -11,17 +11,17 @@ export async function POST() {
       where: {
         aiProcessed: false,
       },
-      take: 3,
+      take: 10,
     });
 
     const pendingStateTenders = await prisma.stateTender.findMany({
       where: {
         aiProcessed: false,
       },
-      take: 3,
+      take: 10,
     });
 
-    const allPending = [...pendingTenders.map(t => ({...t, isState: false})), ...pendingStateTenders.map(t => ({...t, isState: true}))].slice(0, 2);
+    const allPending = [...pendingTenders.map(t => ({...t, isState: false})), ...pendingStateTenders.map(t => ({...t, isState: true}))].slice(0, 10);
 
     if (allPending.length === 0) {
       return NextResponse.json({ success: true, processed: 0, message: "Queue is empty." });
@@ -73,8 +73,8 @@ export async function POST() {
           errorCount++;
         }
         
-        // Respect Gemini Free Tier limits by spacing out requests
-        await new Promise(r => setTimeout(r, 4000));
+        // Respect Gemini Free Tier limits by spacing out requests (15 RPM max)
+        await new Promise(r => setTimeout(r, 3000));
 
       } catch (error: any) {
         // If we hit a hard error (like 503 Unavailable or 429 Too Many Requests), log the error but keep aiProcessed: false

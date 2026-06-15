@@ -140,7 +140,23 @@ export function TenderTable({
       ));
     }
   };
-  
+  const retryAI = async (id: string) => {
+    try {
+      // Optimistically update UI to show spinning state
+      setTenders(tenders.map(t => 
+        t.id === id ? { ...t, aiProcessed: false, aiError: null } : t
+      ));
+      
+      await axios.patch(`/api/tenders/${id}/retry-ai?state=${typeLabel === 'Organisation'}`);
+      
+      // We don't need to explicitly fetchTenders because the page's polling logic or 
+      // the user refreshing will eventually pick it up, but optimistically it looks good.
+    } catch (error) {
+      console.error("Failed to retry AI", error);
+      // Revert optimism if needed (simple reload works too)
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
       
@@ -262,10 +278,16 @@ export function TenderTable({
                           <p className="text-xs text-gray-700 leading-relaxed italic">{tender.aiSummary}</p>
                         </div>
                       ) : tender.aiProcessed ? (
-                        <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded-lg border border-gray-200 mt-1">
+                        <div className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 mt-1">
                           <p className="text-xs text-gray-500 leading-relaxed italic text-[11px]">
                             {tender.aiError ? `AI Error: ${tender.aiError}` : 'AI summary unavailable.'}
                           </p>
+                          <button 
+                            onClick={() => retryAI(tender.id)} 
+                            className="shrink-0 text-blue-600 hover:text-blue-800 text-[11px] font-semibold flex items-center gap-1 bg-white border border-blue-100 hover:bg-blue-50 px-2 py-0.5 rounded shadow-sm transition-colors"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Regenerate
+                          </button>
                         </div>
                       ) : (
                         <div className="mt-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 flex items-center gap-2">

@@ -11,7 +11,7 @@ import { scrapeStateTenders } from "./nicgep-scraper";
 const DEFAULT_TIMEOUT = 30000;
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
+export async function scrapeDistrict(district: string, source: string = "AUTO"): Promise<ScrapeResult> {
   let page = 0;
   const maxPages = 10;
   let hasMore = true;
@@ -121,6 +121,7 @@ export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
         district,
         status: "SUCCESS",
         tendersFound: allValidTenders.length,
+        source,
       }
     });
 
@@ -128,6 +129,7 @@ export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
       district,
       success: true,
       tenders: allValidTenders,
+      newTendersCount,
     };
 
   } catch (error) {
@@ -140,6 +142,7 @@ export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
         status: "FAILED",
         tendersFound: 0,
         error: error instanceof Error ? error.message : "Unknown error",
+        source,
       }
     });
 
@@ -147,12 +150,13 @@ export async function scrapeDistrict(district: string): Promise<ScrapeResult> {
       district,
       success: false,
       tenders: [],
+      newTendersCount: 0,
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
-export async function runFullScrape() {
+export async function runFullScrape(source: string = "AUTO") {
   const results: ScrapeResult[] = [];
   
   // Create tasks wrapped in p-limit for concurrency
@@ -160,7 +164,7 @@ export async function runFullScrape() {
     return scraperLimit(async () => {
       // Add random delay between requests as per anti-blocking requirements
       await randomDelay(1000, 3000);
-      const result = await scrapeDistrict(district);
+      const result = await scrapeDistrict(district, source);
       results.push(result);
       return result;
     });
@@ -169,7 +173,7 @@ export async function runFullScrape() {
   // Also add the state-level NICGEP scraper task
   const stateTask = scraperLimit(async () => {
     await randomDelay(1000, 3000);
-    const result = await scrapeStateTenders();
+    const result = await scrapeStateTenders(source);
     results.push(result);
     return result;
   });

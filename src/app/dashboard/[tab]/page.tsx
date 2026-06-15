@@ -5,6 +5,7 @@ import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
 import { SettingsModal } from "@/components/SettingsModal";
+import { LogsModal } from "@/components/LogsModal";
 import { DistrictsModal } from "@/components/DistrictsModal";
 import { RefreshCw, LayoutDashboard, LogOut, Settings, ChevronDown, User, Bot } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +15,8 @@ import axios from "axios";
 export default function Dashboard() {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scraping, setScraping] = useState(false);
+  const [scrapingTarget, setScrapingTarget] = useState<'district' | 'state' | null>(null);
+  const [scrapingProgress, setScrapingProgress] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'active', 'expired'
   const [districtFilter, setDistrictFilter] = useState("");
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isDistrictsModalOpen, setIsDistrictsModalOpen] = useState(false);
   const lastSearchTerm = useRef(searchTerm);
 
@@ -207,8 +210,9 @@ export default function Dashboard() {
   }, [stats.pendingQueue, isProcessingQueue, activeTab]);
 
   const handleScrape = async (type: 'district' | 'state') => {
-    if (scraping) return;
-    setScraping(true);
+    if (scrapingTarget) return;
+    setScrapingTarget(type);
+    setScrapingProgress("");
     try {
       let totalNew = 0;
       let totalProcessed = 0;
@@ -217,9 +221,8 @@ export default function Dashboard() {
         const { DISTRICTS } = await import("@/lib/scraper/districts");
         for (const district of DISTRICTS) {
           try {
-            // Update button UI state to show progress
-            const btn = document.getElementById("scrape-btn-district");
-            if (btn) btn.innerText = `Crawling ${district}...`;
+            // Update UI state to show progress
+            setScrapingProgress(`Crawling ${district}...`);
 
             const res = await axios.post("/api/scrape", { district });
             if (res.data.success) {
@@ -234,8 +237,7 @@ export default function Dashboard() {
         }
         alert(`Scraping completed! Found ${totalNew} new tenders across ${totalProcessed} districts.`);
       } else if (type === 'state') {
-        const btn = document.getElementById("scrape-btn-state");
-        if (btn) btn.innerText = `Crawling State Portal...`;
+        setScrapingProgress(`Crawling State Portal...`);
         
         const res = await axios.post("/api/scrape", { district: 'state' });
         if (res.data.success) {
@@ -250,11 +252,8 @@ export default function Dashboard() {
       console.error("Scraping error:", error);
       alert("Failed to trigger scrape.");
     } finally {
-      setScraping(false);
-      const btnD = document.getElementById("scrape-btn-district");
-      if (btnD) btnD.innerText = "Run District Scraper";
-      const btnS = document.getElementById("scrape-btn-state");
-      if (btnS) btnS.innerText = "Run State Scraper";
+      setScrapingTarget(null);
+      setScrapingProgress("");
     }
   };
 
@@ -318,22 +317,22 @@ export default function Dashboard() {
               <button
                 id="scrape-btn-district"
                 onClick={() => handleScrape('district')}
-                disabled={scraping}
+                disabled={!!scrapingTarget}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-semibold text-white transition-colors
-                  ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  ${scrapingTarget === 'district' ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
-                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
-                {scraping ? 'Crawling Districts...' : 'Run District Scraper'}
+                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${scrapingTarget === 'district' ? 'animate-spin' : ''}`} />
+                {scrapingTarget === 'district' ? (scrapingProgress || 'Crawling Districts...') : 'Run District Scraper'}
               </button>
               <button
                 id="scrape-btn-state"
                 onClick={() => handleScrape('state')}
-                disabled={scraping}
+                disabled={!!scrapingTarget}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-semibold text-white transition-colors
-                  ${scraping ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                  ${scrapingTarget === 'state' ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
               >
-                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
-                {scraping ? 'Crawling State...' : 'Run State Scraper'}
+                <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${scrapingTarget === 'state' ? 'animate-spin' : ''}`} />
+                {scrapingTarget === 'state' ? (scrapingProgress || 'Crawling State...') : 'Run State Scraper'}
               </button>
 
               <div className="relative">
@@ -357,6 +356,16 @@ export default function Dashboard() {
                     >
                       <Settings className="w-4 h-4 shrink-0" />
                       Settings
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                      onClick={() => {
+                        setIsLogsOpen(true);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <LayoutDashboard className="w-4 h-4 shrink-0" />
+                      System Logs
                     </button>
                     <button
                       onClick={() => {
@@ -503,6 +512,12 @@ export default function Dashboard() {
             fetchTenders();
           }
         }} 
+      />
+
+      {/* Logs Modal */}
+      <LogsModal
+        isOpen={isLogsOpen}
+        onClose={() => setIsLogsOpen(false)}
       />
 
       {/* Districts Modal */}

@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const source = isFrontendUser ? "MANUAL" : "AUTO";
+
     let targetDistrict: string | null = null;
     
     // Parse optional JSON body for a specific district
@@ -36,16 +38,16 @@ export async function POST(req: NextRequest) {
 
     if (targetDistrict === 'state') {
       const { scrapeStateTenders } = await import("@/lib/scraper/nicgep-scraper");
-      const result = await scrapeStateTenders();
+      const result = await scrapeStateTenders(source);
       return NextResponse.json({
         success: result.success,
         districtsProcessed: 1,
-        newTenders: result.tenders?.length || 0,
+        newTenders: result.newTendersCount || 0,
         details: [result]
       });
     } else if (targetDistrict) {
-      const result = await scrapeDistrict(targetDistrict);
-      const newTenders = result.tenders?.length || 0;
+      const result = await scrapeDistrict(targetDistrict, source);
+      const newTenders = result.newTendersCount || 0;
       
       return NextResponse.json({
         success: result.success,
@@ -54,8 +56,8 @@ export async function POST(req: NextRequest) {
         details: [result]
       });
     } else {
-      const result = await runFullScrape();
-      const newTenders = result.results.reduce((acc, curr) => acc + (curr.tenders?.length || 0), 0);
+      const result = await runFullScrape(source);
+      const newTenders = result.results.reduce((acc, curr) => acc + (curr.newTendersCount || 0), 0);
 
       return NextResponse.json({
         success: true,
