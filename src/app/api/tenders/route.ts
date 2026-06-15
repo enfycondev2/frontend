@@ -96,8 +96,7 @@ export async function GET(request: NextRequest) {
           where,
           skip,
           take,
-          orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
-          omit: { description: true }
+          orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }]
         }),
         (delegate as any).count({ where }),
         (delegate as any).count({ where: { aiProcessed: false } })
