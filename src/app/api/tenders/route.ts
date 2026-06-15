@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DISTRICTS } from '@/lib/scraper/districts';
+import NodeCache from 'node-cache';
+
+// Cache for 30 seconds to provide instant feedback while preventing stale data
+export const tendersCache = new NodeCache({ stdTTL: 30 });
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const cacheKey = searchParams.toString() || 'default';
+    
+    const cachedResponse = tendersCache.get(cacheKey);
+    if (cachedResponse) {
+      return NextResponse.json(cachedResponse);
+    }
+
     const district = searchParams.get('district');
     const search = searchParams.get('search');
     const active = searchParams.get('active');
@@ -138,7 +149,7 @@ export async function GET(request: NextRequest) {
 
     if (tenderType === 'state' || tenderType === 'district') {
       const res = await fetchFromTable(tenderType === 'state', false);
-      return NextResponse.json({
+      const payload = {
         success: true,
         data: res.tenders,
         meta: {
@@ -153,7 +164,9 @@ export async function GET(request: NextRequest) {
           pageSize,
           totalPages: Math.ceil(res.total / pageSize)
         }
-      });
+      };
+      tendersCache.set(cacheKey, payload);
+      return NextResponse.json(payload);
     } else {
       const [distRes, stateRes] = await Promise.all([
         fetchFromTable(false, true),
@@ -169,7 +182,7 @@ export async function GET(request: NextRequest) {
       const total = distRes.total + stateRes.total;
       const paginatedTenders = allTenders.slice((page - 1) * pageSize, page * pageSize);
 
-      return NextResponse.json({
+      const payload = {
         success: true,
         data: paginatedTenders,
         meta: {
@@ -179,7 +192,9 @@ export async function GET(request: NextRequest) {
           pageSize,
           totalPages: Math.ceil(total / pageSize)
         }
-      });
+      };
+      tendersCache.set(cacheKey, payload);
+      return NextResponse.json(payload);
     }
 
   } catch (error: any) {

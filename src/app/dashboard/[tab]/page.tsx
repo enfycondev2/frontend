@@ -46,11 +46,12 @@ export default function Dashboard() {
     }
   }, []);
 
-  const fetchTenders = async () => {
+  const fetchTenders = async (forceRefresh = false) => {
     setLoading(true);
     try {
       // Build query string
       const params = new URLSearchParams();
+      if (forceRefresh) params.append("_t", Date.now().toString());
       if (searchTerm) params.append("search", searchTerm);
       if (districtFilter) params.append("district", districtFilter);
       if (activeFilter === "active") params.append("active", "true");
@@ -115,12 +116,13 @@ export default function Dashboard() {
     }
   };
 
-  const fetchTodayTenders = async () => {
+  const fetchTodayTenders = async (forceRefresh = false) => {
     try {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
       const params = new URLSearchParams();
+      if (forceRefresh) params.append("_t", Date.now().toString());
       params.append("date", todayStr);
       params.append("pageSize", "20");
       
@@ -183,8 +185,8 @@ export default function Dashboard() {
           
           // If it processed some, refresh the table so the user sees the new data!
           if (res.data.processed > 0) {
-            fetchTenders();
-            fetchTodayTenders();
+            fetchTenders(true);
+            fetchTodayTenders(true);
           }
         } catch (error) {
           console.error("Queue processing error", error);
@@ -242,8 +244,8 @@ export default function Dashboard() {
         alert(`Scraping completed! Found ${totalNew} new state tenders.`);
       }
       
-      fetchTenders();
-      fetchTodayTenders();
+      fetchTenders(true);
+      fetchTodayTenders(true);
     } catch (error) {
       console.error("Scraping error:", error);
       alert("Failed to trigger scrape.");

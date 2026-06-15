@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { tendersCache } from "@/app/api/tenders/route";
 
 export async function PATCH(
   request: NextRequest,
@@ -18,6 +19,8 @@ export async function PATCH(
       where: { id },
       data: { isApplied },
     });
+
+    tendersCache.flushAll();
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
