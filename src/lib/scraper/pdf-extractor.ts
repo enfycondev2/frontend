@@ -12,8 +12,34 @@ export interface ExtractedTenderDetails {
   rawText?: string | null;
 }
 
+function getApiKeys(): string[] {
+  return [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY2,
+    process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4
+  ].filter(Boolean) as string[];
+}
+
+let currentKeyIndex = 0;
+
+function getNextApiKey(): string | null {
+  const keys = getApiKeys();
+  if (keys.length === 0) return null;
+  return keys[currentKeyIndex % keys.length];
+}
+
+function rotateApiKey() {
+  const keys = getApiKeys();
+  if (keys.length > 1) {
+    currentKeyIndex = (currentKeyIndex + 1) % keys.length;
+    console.log(`[PDF Extractor] Rotated to API Key #${(currentKeyIndex % keys.length) + 1}`);
+  }
+}
+
 export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<ExtractedTenderDetails | null> {
-  if (!process.env.GEMINI_API_KEY) {
+  let apiKey = getNextApiKey();
+  if (!apiKey) {
     console.warn("[PDF Extractor] No GEMINI_API_KEY provided. Skipping extraction.");
     return null;
   }
@@ -32,7 +58,7 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
       };
     }
 
-    const ai = new GoogleGenAI({});
+    let ai = new GoogleGenAI({ apiKey });
 
     // 1. Download the PDF
     const response = await axios.get(pdfUrl, {
@@ -90,10 +116,15 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
       Note: The document may be a scanned image. Please read the tables carefully.
     `;
 
-    for (const modelName of ['gemini-3.1-flash-lite']) {
+    let success = false;
+    let parsedResult: ExtractedTenderDetails | null = null;
+    let attempts = 0;
+    const maxAttempts = getApiKeys().length;
+
+    while (attempts < maxAttempts && !success) {
       try {
         const result = await ai.models.generateContent({
-          model: modelName,
+          model: 'gemini-3.1-flash-lite',
           contents: [
             prompt,
             { inlineData: { mimeType: 'application/pdf', data: pdfBase64 } }
@@ -105,20 +136,29 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
           }
         });
 
-        const responseText = result.text; // FIXED: no parentheses
+        const responseText = result.text;
         if (responseText) {
-          const parsed = JSON.parse(responseText) as ExtractedTenderDetails;
-          parsed.rawText = rawTextFromPdf;
-          return parsed;
+          parsedResult = JSON.parse(responseText) as ExtractedTenderDetails;
+          parsedResult.rawText = rawTextFromPdf;
+          success = true;
+          break;
         }
       } catch (aiError: any) {
-        console.warn(`[PDF Extractor] ${modelName} failed (Status: ${aiError?.status || aiError?.message}).`);
+        console.warn(`[PDF Extractor] Attempt ${attempts + 1} failed (Status: ${aiError?.status || aiError?.message}).`);
         
-        // If the error is NOT a rate limit or unavailability, don't try fallback models
-        if (aiError?.status !== 429 && aiError?.status !== 503) {
+        if (aiError?.status === 429 || aiError?.status === 503) {
+          rotateApiKey();
+          apiKey = getNextApiKey()!;
+          ai = new GoogleGenAI({ apiKey });
+          attempts++;
+        } else {
           break;
         }
       }
+    }
+
+    if (success && parsedResult) {
+      return parsedResult;
     }
 
     console.warn(`[PDF Extractor] All AI models failed. Falling back to Regex...`);
@@ -176,3 +216,80 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
     return null;
   }
 }
+
+export async function extractTenderDetailsFromText(title: string, description: string): Promise<ExtractedTenderDetails | null> {
+  let apiKey = getNextApiKey();
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    let ai = new GoogleGenAI({ apiKey });
+
+    const responseSchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        tenderValue: { type: Type.STRING, description: "Estimated Cost/Value if present, else null", nullable: true },
+        emd: { type: Type.STRING, description: "Earnest Money Deposit if present, else null", nullable: true },
+        applicationCost: { type: Type.STRING, description: "Cost of Tender Paper if present, else null", nullable: true },
+        aiSummary: { type: Type.STRING, description: "A 1-sentence readable summary", nullable: true },
+        tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of relevant industry tags/keywords (e.g. Software, Hardware, Civil, Solar, Electrical) inferred from the text." }
+      }
+    };
+
+    const prompt = `
+      You are an expert at classifying Indian government tender notices.
+      Please read the following tender title and description:
+      Title: ${title}
+      Description: ${description}
+      
+      Extract any financial details if present, and provide a 1-sentence summary and industry tags.
+    `;
+
+    let success = false;
+    let parsedResult: ExtractedTenderDetails | null = null;
+    let attempts = 0;
+    const maxAttempts = getApiKeys().length;
+
+    while (attempts < maxAttempts && !success) {
+      try {
+        const result = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: responseSchema,
+          }
+        });
+
+        const responseText = result.text;
+        if (responseText) {
+          parsedResult = JSON.parse(responseText) as ExtractedTenderDetails;
+          parsedResult.rawText = `${title}\n${description}`;
+          success = true;
+          break;
+        }
+      } catch (aiError: any) {
+        console.warn(`[Text Extractor] Attempt ${attempts + 1} failed (Status: ${aiError?.status || aiError?.message}).`);
+        
+        if (aiError?.status === 429 || aiError?.status === 503) {
+          rotateApiKey();
+          apiKey = getNextApiKey()!;
+          ai = new GoogleGenAI({ apiKey });
+          attempts++;
+        } else {
+          throw aiError;
+        }
+      }
+    }
+
+    if (success && parsedResult) {
+      return parsedResult;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Text Extractor] Error:", error);
+    throw error;
+  }
+}
+

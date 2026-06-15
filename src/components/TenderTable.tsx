@@ -56,6 +56,8 @@ interface TenderTableProps {
   onPageChange?: (page: number) => void;
   hideControls?: boolean;
   onOpenSettings?: () => void;
+  typeLabel?: string;
+  organisations?: string[];
 }
 
 export function TenderTable({
@@ -75,7 +77,9 @@ export function TenderTable({
   totalPages,
   onPageChange,
   hideControls = false,
-  onOpenSettings
+  onOpenSettings,
+  typeLabel = "District",
+  organisations
 }: TenderTableProps) {
   const [tenders, setTenders] = useState<ExtendedTender[]>(initialTenders);
 
@@ -140,8 +144,8 @@ export function TenderTable({
             value={districtFilter}
             onChange={(e) => setDistrictFilter(e.target.value)}
           >
-            <option value="">All Districts</option>
-            {DISTRICTS.map((dist) => (
+            <option value="">All {typeLabel}s</option>
+            {(organisations || DISTRICTS).map((dist) => (
               <option key={dist} value={dist} className="capitalize">
                 {dist}
               </option>
@@ -192,7 +196,7 @@ export function TenderTable({
         <table className="w-full table-fixed min-w-[800px] text-left text-sm text-gray-600 relative">
           <thead className="bg-slate-800 text-white font-semibold border-b border-slate-700 sticky top-[60px] md:top-[148px] lg:top-[160px] z-20">
             <tr className="divide-x divide-slate-700">
-              <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-slate-300">District</th>
+              <th className="px-5 py-4 w-[12%] text-xs uppercase tracking-wider text-slate-300">{typeLabel}</th>
               <th className="px-5 py-4 w-[40%] text-xs uppercase tracking-wider text-slate-300">Title & AI Summary</th>
               <th className="px-5 py-4 w-[18%] text-xs uppercase tracking-wider text-slate-300">Financials</th>
               <th className="px-5 py-4 w-[15%] text-xs uppercase tracking-wider text-slate-300">Timeline</th>
@@ -311,6 +315,11 @@ export function TenderTable({
                     {tender.tenderPdfUrl && (
                       <a href={tender.tenderPdfUrl} target="_blank" rel="noreferrer" className="text-purple-600 hover:text-purple-800 flex items-center gap-1 text-xs bg-purple-50 px-2 py-1 rounded">
                         <Download className="w-3 h-3" /> Tender
+                      </a>
+                    )}
+                    {!tender.noticePdfUrl && !tender.tenderPdfUrl && (
+                      <a href={tender.sourceUrl} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-gray-800 flex items-center gap-1 text-xs bg-gray-100 border border-gray-200 px-2 py-1 rounded transition-colors shadow-sm w-full justify-center">
+                        <ExternalLink className="w-3 h-3" /> View Portal
                       </a>
                     )}
                   </div>

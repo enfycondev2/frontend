@@ -1,15 +1,16 @@
 import { FileText, CheckCircle, Clock, MapPin } from "lucide-react";
 
-interface StatsProps {
+interface DashboardStatsProps {
   total: number;
   active: number;
   expiring: number;
   districts: number;
-  onFilterClick?: (filter: string) => void;
-  onDistrictsClick?: () => void;
+  onFilterClick: (filter: string) => void;
+  onDistrictsClick: () => void;
+  typeLabel?: string;
 }
 
-export function DashboardStats({ total, active, expiring, districts, onFilterClick, onDistrictsClick }: StatsProps) {
+export function DashboardStats({ total, active, expiring, districts, onFilterClick, onDistrictsClick, typeLabel = "District" }: DashboardStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <StatCard 
@@ -34,7 +35,7 @@ export function DashboardStats({ total, active, expiring, districts, onFilterCli
         onClick={() => onFilterClick && onFilterClick('expiring')}
       />
       <StatCard 
-        title="Districts Crawled" 
+        title={`${typeLabel}s Crawled`}
         value={districts} 
         icon={<MapPin className="w-6 h-6 text-purple-500" />} 
         bgColor="bg-purple-50" 

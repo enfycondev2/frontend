@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [todayTenders, setTodayTenders] = useState<Tender[]>([]);
-  const [activeTab, setActiveTab] = useState("home"); // 'home', 'today', 'this_week', 'bookmarks'
+  const [activeTab, setActiveTab] = useState("district"); // 'district', 'state', 'today', 'this_week', 'bookmarks'
   const [page, setPage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
   const [username, setUsername] = useState("");
@@ -58,6 +58,10 @@ export default function Dashboard() {
         params.append("bookmarked", "true");
       } else if (activeTab === "applied") {
         params.append("applied", "true");
+      } else if (activeTab === "state") {
+        params.append("tenderType", "state");
+      } else if (activeTab === "district") {
+        params.append("tenderType", "district");
       } else if (activeTab === "this_week") {
         params.append("dateRange", "this_week");
       } else if (activeTab === "today") {
@@ -108,7 +112,13 @@ export default function Dashboard() {
       const today = new Date();
       // Format as YYYY-MM-DD in local time
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const res = await axios.get(`/api/tenders?date=${todayStr}&pageSize=20`);
+      
+      let query = `/api/tenders?date=${todayStr}&pageSize=20`;
+      if (activeTab === 'district' || activeTab === 'state') {
+        query += `&tenderType=${activeTab}`;
+      }
+      
+      const res = await axios.get(query);
       setTodayTenders(res.data.data as Tender[]);
     } catch (error) {
       console.error("Error fetching today tenders", error);
@@ -134,7 +144,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTodayTenders();
-  }, []);
+  }, [activeTab]);
 
   // BACKGROUND AI QUEUE PROCESSOR
   useEffect(() => {
@@ -162,42 +172,53 @@ export default function Dashboard() {
     };
 
     if (stats.pendingQueue > 0) {
-      // Poll every 30 seconds to stay safely under Gemini's 15 Requests Per Minute limit
-      interval = setInterval(processQueue, 30000);
+      // Poll every 60 seconds to stay safely under Gemini's 15 Requests Per Minute limit
+      interval = setInterval(processQueue, 60000);
       // Run immediately on first detect
       if (!isProcessingQueue) processQueue();
     }
 
     return () => clearInterval(interval);
-  }, [stats.pendingQueue, isProcessingQueue]);
+  }, [stats.pendingQueue, isProcessingQueue, activeTab]);
 
-  const handleScrape = async () => {
+  const handleScrape = async (type: 'district' | 'state') => {
     if (scraping) return;
     setScraping(true);
     try {
-      const { DISTRICTS } = await import("@/lib/scraper/districts");
       let totalNew = 0;
       let totalProcessed = 0;
       
-      for (const district of DISTRICTS) {
-        try {
-          // Update button UI state to show progress
-          const btn = document.getElementById("scrape-btn");
-          if (btn) btn.innerText = `Crawling ${district}...`;
+      if (type === 'district') {
+        const { DISTRICTS } = await import("@/lib/scraper/districts");
+        for (const district of DISTRICTS) {
+          try {
+            // Update button UI state to show progress
+            const btn = document.getElementById("scrape-btn-district");
+            if (btn) btn.innerText = `Crawling ${district}...`;
 
-          const res = await axios.post("/api/scrape", { district });
-          if (res.data.success) {
-            totalNew += res.data.newTenders || 0;
-            totalProcessed++;
+            const res = await axios.post("/api/scrape", { district });
+            if (res.data.success) {
+              totalNew += res.data.newTenders || 0;
+              totalProcessed++;
+            }
+          } catch (err) {
+            console.error(`Failed to scrape ${district}:`, err);
           }
-        } catch (err) {
-          console.error(`Failed to scrape ${district}:`, err);
+          // Small delay between districts to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-        // Small delay between districts to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 500));
+        alert(`Scraping completed! Found ${totalNew} new tenders across ${totalProcessed} districts.`);
+      } else if (type === 'state') {
+        const btn = document.getElementById("scrape-btn-state");
+        if (btn) btn.innerText = `Crawling State Portal...`;
+        
+        const res = await axios.post("/api/scrape", { district: 'state' });
+        if (res.data.success) {
+          totalNew += res.data.newTenders || 0;
+        }
+        alert(`Scraping completed! Found ${totalNew} new state tenders.`);
       }
       
-      alert(`Scraping completed! Found ${totalNew} new tenders across ${totalProcessed} districts.`);
       fetchTenders();
       fetchTodayTenders();
     } catch (error) {
@@ -205,8 +226,10 @@ export default function Dashboard() {
       alert("Failed to trigger scrape.");
     } finally {
       setScraping(false);
-      const btn = document.getElementById("scrape-btn");
-      if (btn) btn.innerText = "Run Scraper";
+      const btnD = document.getElementById("scrape-btn-district");
+      if (btnD) btnD.innerText = "Run District Scraper";
+      const btnS = document.getElementById("scrape-btn-state");
+      if (btnS) btnS.innerText = "Run State Scraper";
     }
   };
 
@@ -238,24 +261,14 @@ export default function Dashboard() {
                   <LogOut className="w-4 h-4 shrink-0" />
                   <span className="hidden sm:inline">Logout</span>
                 </button>
-                <button
-                  id="scrape-btn-mobile"
-                  onClick={handleScrape}
-                  disabled={scraping}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
-                    ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                >
-                  <RefreshCw className={`w-4 h-4 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">{scraping ? 'Crawling...' : 'Run Scraper'}</span>
-                  <span className="sm:hidden">{scraping ? '...' : 'Scrape'}</span>
-                </button>
               </div>
             </div>
 
             {/* Navigation - Middle */}
             <nav className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar w-full lg:w-auto lg:h-full items-center justify-start lg:justify-center">
               {[
-                { id: "home", label: "Home" },
+                { id: "district", label: "District Tenders" },
+                { id: "state", label: "State Tenders" },
                 { id: "today", label: "Today" },
                 { id: "this_week", label: "This Week" },
                 { id: "bookmarks", label: "Bookmarks" },
@@ -318,16 +331,6 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <button
-                id="scrape-btn"
-                onClick={handleScrape}
-                disabled={scraping}
-                className={`inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
-                  ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-              >
-                <RefreshCw className={`w-4 h-4 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
-                {scraping ? 'Crawling Districts...' : 'Run Scraper'}
-              </button>
             </div>
             
           </div>
@@ -337,7 +340,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {activeTab === "home" && (
+        {(activeTab === "district" || activeTab === "state") && (
           <>
             <DashboardStats 
               total={stats.total} 
@@ -346,6 +349,7 @@ export default function Dashboard() {
               districts={stats.districtsCrawled}
               onFilterClick={setActiveFilter}
               onDistrictsClick={() => setIsDistrictsModalOpen(true)}
+              typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
             />
 
             {todayTenders.length > 0 && (
@@ -365,6 +369,7 @@ export default function Dashboard() {
                   setPriorityFilter={() => {}}
                   highPriorityCount={stats.highPriority}
                   hideControls={true}
+                  typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
                 />
               </div>
             )}
@@ -374,26 +379,54 @@ export default function Dashboard() {
         <div className="mb-6 mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              {activeTab === 'home' && 'All Tenders'}
+              {activeTab === 'district' && 'District Tenders'}
+              {activeTab === 'state' && 'State Tenders'}
               {activeTab === 'today' && "Today's Tenders"}
               {activeTab === 'this_week' && "This Week's Tenders"}
               {activeTab === 'bookmarks' && 'Bookmarked Tenders'}
               {activeTab === 'applied' && 'Applied Tenders'}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {activeTab === 'home' && 'Monitor and track latest tenders across districts.'}
+              {activeTab === 'district' && 'Monitor and track latest tenders across districts.'}
+              {activeTab === 'state' && 'State-level tenders from NICGEP portal.'}
               {activeTab === 'today' && 'Tenders published today.'}
               {activeTab === 'this_week' && 'Tenders published within the current week.'}
               {activeTab === 'bookmarks' && 'Your saved tenders for quick access.'}
               {activeTab === 'applied' && 'Tenders you have submitted applications for.'}
             </p>
           </div>
-          {stats.pendingQueue > 0 && (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              AI Analysing {stats.pendingQueue} Tenders...
-            </span>
-          )}
+          <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            {activeTab === 'district' && (
+              <button
+                id="scrape-btn-district"
+                onClick={() => handleScrape('district')}
+                disabled={scraping}
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
+                  ${scraping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                <RefreshCw className={`w-4 h-4 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
+                {scraping ? 'Crawling Districts...' : 'Run District Scraper'}
+              </button>
+            )}
+            {activeTab === 'state' && (
+              <button
+                id="scrape-btn-state"
+                onClick={() => handleScrape('state')}
+                disabled={scraping}
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors
+                  ${scraping ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+              >
+                <RefreshCw className={`w-4 h-4 shrink-0 ${scraping ? 'animate-spin' : ''}`} />
+                {scraping ? 'Crawling State...' : 'Run State Scraper'}
+              </button>
+            )}
+            {stats.pendingQueue > 0 && (
+              <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                AI Analysing {stats.pendingQueue} Tenders...
+              </span>
+            )}
+          </div>
         </div>
 
         {loading && tenders.length === 0 ? (
@@ -418,6 +451,8 @@ export default function Dashboard() {
             totalPages={tableTotalPages}
             onPageChange={setPage}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
+            organisations={activeTab === 'state' ? stats.districtsData.map((d: any) => d.district) : undefined}
           />
         )}
       </main>
@@ -443,6 +478,7 @@ export default function Dashboard() {
           setDistrictFilter(district);
           setIsDistrictsModalOpen(false);
         }}
+        typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
       />
     </div>
   );

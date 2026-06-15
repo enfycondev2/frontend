@@ -5,9 +5,10 @@ interface DistrictsModalProps {
   onClose: () => void;
   districtsData: { district: string; _count: { _all: number } }[];
   onSelectDistrict: (district: string) => void;
+  typeLabel?: string;
 }
 
-export function DistrictsModal({ isOpen, onClose, districtsData, onSelectDistrict }: DistrictsModalProps) {
+export function DistrictsModal({ isOpen, onClose, districtsData, onSelectDistrict, typeLabel = "District" }: DistrictsModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -22,8 +23,8 @@ export function DistrictsModal({ isOpen, onClose, districtsData, onSelectDistric
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Districts Crawled</h2>
-              <p className="text-sm text-gray-500 font-medium">Click on any district to filter the dashboard</p>
+              <h2 className="text-xl font-bold text-gray-900">{typeLabel}s Crawled</h2>
+              <p className="text-sm text-gray-500 font-medium">Click on any {typeLabel.toLowerCase()} to filter the dashboard</p>
             </div>
           </div>
           <button 

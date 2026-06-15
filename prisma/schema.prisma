@@ -48,6 +48,45 @@ model Tender {
   @@unique([district, tenderPdfUrl])
 }
 
+model StateTender {
+  id              String   @id @default(uuid())
+  localId         Int      @default(autoincrement())
+
+  organisation    String
+
+  title           String
+  description     String?
+
+  startDate       DateTime?
+  endDate         DateTime?
+
+  noticePdfUrl    String?
+  tenderPdfUrl    String?
+
+  tenderValue     String?
+  emd             String?
+  applicationCost String?
+
+  aiSummary       String?
+  tags            String[] @default([])
+
+  aiProcessed     Boolean  @default(false)
+  aiError         String?
+
+  isBookmarked    Boolean  @default(false)
+  isApplied       Boolean  @default(false)
+
+  sourceUrl       String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organisation])
+  @@index([endDate])
+
+  @@unique([organisation, title])
+}
+
 model ScrapeLog {
   id            String   @id @default(uuid())
 

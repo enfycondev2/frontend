@@ -6,6 +6,7 @@ import { parseTenderPage } from "./parser";
 import { ScrapeResult, TenderSchema } from "./types";
 import { extractTenderDetailsFromPdf } from "./pdf-extractor";
 import { prisma } from "../prisma";
+import { scrapeStateTenders } from "./nicgep-scraper";
 
 const DEFAULT_TIMEOUT = 30000;
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -165,12 +166,20 @@ export async function runFullScrape() {
     });
   });
 
-  // Wait for all districts to complete
-  await Promise.allSettled(tasks);
+  // Also add the state-level NICGEP scraper task
+  const stateTask = scraperLimit(async () => {
+    await randomDelay(1000, 3000);
+    const result = await scrapeStateTenders();
+    results.push(result);
+    return result;
+  });
+
+  // Wait for all districts + state to complete
+  await Promise.allSettled([...tasks, stateTask]);
   
   return {
     success: true,
-    districtsProcessed: DISTRICTS.length,
+    districtsProcessed: DISTRICTS.length + 1,
     results
   };
 }

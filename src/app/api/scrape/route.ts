@@ -22,16 +22,28 @@ export async function POST(req: NextRequest) {
     try {
       const body = await req.json();
       if (body && body.district) {
-        if (!DISTRICTS.includes(body.district.toLowerCase())) {
+        if (body.district.toLowerCase() === 'state') {
+          targetDistrict = 'state';
+        } else if (!DISTRICTS.includes(body.district.toLowerCase())) {
           return NextResponse.json({ success: false, error: `Invalid district name. Allowed values: ${DISTRICTS.join(', ')}` }, { status: 400 });
+        } else {
+          targetDistrict = body.district.toLowerCase();
         }
-        targetDistrict = body.district.toLowerCase();
       }
     } catch (e) {
       // Ignored: No JSON body provided, default to full scrape
     }
 
-    if (targetDistrict) {
+    if (targetDistrict === 'state') {
+      const { scrapeStateTenders } = await import("@/lib/scraper/nicgep-scraper");
+      const result = await scrapeStateTenders();
+      return NextResponse.json({
+        success: result.success,
+        districtsProcessed: 1,
+        newTenders: result.tenders?.length || 0,
+        details: [result]
+      });
+    } else if (targetDistrict) {
       const result = await scrapeDistrict(targetDistrict);
       const newTenders = result.tenders?.length || 0;
       
