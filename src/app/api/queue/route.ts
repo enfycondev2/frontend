@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { extractTenderDetailsFromPdf, extractTenderDetailsFromText } from '@/lib/scraper/pdf-extractor';
+import { revalidateTag } from 'next/cache';
 
 const prisma = new PrismaClient();
 
@@ -99,6 +100,10 @@ export async function POST() {
     // Get the remaining queue count to send back to the frontend
     const remainingCountDist = await prisma.tender.count({ where: { aiProcessed: false } });
     const remainingCountState = await prisma.stateTender.count({ where: { aiProcessed: false } });
+
+    if (processedCount > 0 || errorCount > 0) {
+      revalidateTag("tenders");
+    }
 
     return NextResponse.json({ 
       success: true, 

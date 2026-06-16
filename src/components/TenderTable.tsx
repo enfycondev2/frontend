@@ -78,6 +78,7 @@ interface TenderTableProps {
   onOpenSettings?: () => void;
   typeLabel?: string;
   organisations?: string[];
+  onRetryAI?: () => void;
 }
 
 export function TenderTable({
@@ -99,7 +100,8 @@ export function TenderTable({
   hideControls = false,
   onOpenSettings,
   typeLabel = "District",
-  organisations
+  organisations,
+  onRetryAI
 }: TenderTableProps) {
   const [tenders, setTenders] = useState<ExtendedTender[]>(initialTenders);
 
@@ -149,6 +151,9 @@ export function TenderTable({
       
       await axios.patch(`/api/tenders/${id}/retry-ai?state=${typeLabel === 'Organisation'}`);
       
+      if (onRetryAI) {
+        onRetryAI();
+      }
       // We don't need to explicitly fetchTenders because the page's polling logic or 
       // the user refreshing will eventually pick it up, but optimistically it looks good.
     } catch (error) {
@@ -208,9 +213,14 @@ export function TenderTable({
 
           <button 
             onClick={() => setPriorityFilter(priorityFilter === 'HIGH' ? '' : 'HIGH')}
-            className={`flex-1 min-w-[140px] justify-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-sm transition-colors flex items-center gap-1 ${priorityFilter === 'HIGH' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-gray-200 text-gray-700'}`}
+            className={`flex-1 min-w-[140px] justify-center px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-sm transition-colors flex items-center gap-2 whitespace-nowrap ${priorityFilter === 'HIGH' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-gray-200 text-gray-700'}`}
           >
-            🔥 High Priority {highPriorityCount !== undefined && highPriorityCount > 0 ? `(${highPriorityCount})` : ''}
+            <span className="flex items-center gap-1">🔥 High Priority</span>
+            {highPriorityCount !== undefined && highPriorityCount > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold shadow-sm ${priorityFilter === 'HIGH' ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-100 border border-gray-200 text-gray-600'}`}>
+                {highPriorityCount}
+              </span>
+            )}
           </button>
           
           {onOpenSettings && (

@@ -186,8 +186,8 @@ export default function Dashboard() {
           // Update the remaining count
           setStats(prev => ({ ...prev, pendingQueue: res.data.remaining }));
           
-          // If it processed some, refresh the table so the user sees the new data!
-          if (res.data.processed > 0) {
+          // If it processed some or encountered errors, refresh the table so the user sees the new data!
+          if (res.data.processed > 0 || res.data.errors > 0) {
             fetchTenders(true);
             fetchTodayTenders(true);
           }
@@ -208,6 +208,10 @@ export default function Dashboard() {
 
     return () => clearInterval(interval);
   }, [stats.pendingQueue, isProcessingQueue, activeTab]);
+
+  const triggerQueueProcessing = () => {
+    setStats(prev => ({ ...prev, pendingQueue: prev.pendingQueue + 1 }));
+  };
 
   const handleScrape = async (type: 'district' | 'state') => {
     if (scrapingTarget) return;
@@ -422,6 +426,7 @@ export default function Dashboard() {
                   highPriorityCount={stats.highPriority}
                   hideControls={false}
                   typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
+                  onRetryAI={triggerQueueProcessing}
                 />
               </div>
             )}
@@ -498,6 +503,7 @@ export default function Dashboard() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             typeLabel={activeTab === 'state' || viewType === 'state' ? 'Organisation' : 'District'}
             organisations={activeTab === 'state' || viewType === 'state' ? stats.districtsData.map((d: any) => d.district) : undefined}
+            onRetryAI={triggerQueueProcessing}
           />
         )}
       </main>

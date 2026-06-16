@@ -93,10 +93,27 @@ const getCachedTenders = unstable_cache(
       let activeCount = 0, expiringCount = 0, distGroups: any[] = [], highPriorityCount = 0;
 
       if (includeStats === 'true' && !isMixed) {
+        let hpWhere: any = { ...where };
+        if (keywordList.length > 0) {
+          const keywordConditions = [
+            { tags: { hasSome: keywordList } },
+            ...keywordList.map((kw: string) => ({ title: { contains: kw, mode: 'insensitive' as const } })),
+            ...keywordList.map((kw: string) => ({ aiSummary: { contains: kw, mode: 'insensitive' as const } }))
+          ];
+          if (hpWhere.AND) {
+            hpWhere.AND = [...hpWhere.AND, { OR: keywordConditions }];
+          } else {
+            hpWhere.AND = [{ OR: keywordConditions }];
+          }
+        } else {
+          hpWhere.id = 'NONE';
+        }
+
         const statsResults = await Promise.all([
           (delegate as any).count({ where: { ...where, OR: [{ endDate: { gte: now } }, { endDate: null }] } }),
           (delegate as any).count({ where: { ...where, endDate: { gte: now, lte: in7Days } } }),
-          (delegate as any).groupBy({ by: [districtField], _count: { _all: true }, where })
+          (delegate as any).groupBy({ by: [districtField], _count: { _all: true }, where }),
+          (delegate as any).count({ where: hpWhere })
         ]);
         activeCount = statsResults[0];
         expiringCount = statsResults[1];
@@ -111,7 +128,7 @@ const getCachedTenders = unstable_cache(
             return { district: d, _count: { _all: found ? found._count._all : 0 } };
           });
         }
-        highPriorityCount = 0;
+        highPriorityCount = statsResults[3];
       }
 
       const formattedTenders = tenders.map((t: any) => {
