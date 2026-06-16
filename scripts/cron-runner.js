@@ -1,6 +1,10 @@
 const https = require('https');
+const http = require('http');
 
-const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
+let SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
+if (!SITE_URL.startsWith('http')) {
+  SITE_URL = `https://${SITE_URL}`;
+}
 const CRON_SECRET = process.env.CRON_SECRET;
 
 if (!CRON_SECRET) {
@@ -20,7 +24,8 @@ function makeRequest(method, endpoint, body = null) {
       }
     };
 
-    const req = https.request(url, options, (res) => {
+    const client = url.protocol === 'https:' ? https : http;
+    const req = client.request(url, options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
