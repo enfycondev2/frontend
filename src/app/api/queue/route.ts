@@ -102,7 +102,7 @@ export async function POST() {
     const remainingCountState = await prisma.stateTender.count({ where: { aiProcessed: false } });
 
     if (processedCount > 0 || errorCount > 0) {
-      revalidateTag("tenders");
+      revalidateTag("tenders", "max");
     }
 
     return NextResponse.json({ 
