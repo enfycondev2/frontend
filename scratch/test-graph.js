@@ -1,8 +1,9 @@
+require('dotenv').config();
 const fs = require('fs');
 
 async function test() {
-  const tenantId = '449ef8af-d2d1-43ec-bdfe-a448d2d2e5a7';
-  const clientId = "beaaeaf8-d20e-4c19-a555-9ee75c13ca33";
+  const tenantId = process.env.AZURE_TENANT_ID || '449ef8af-d2d1-43ec-bdfe-a448d2d2e5a7';
+  const clientId = process.env.AZURE_CLIENT_ID;
   const clientSecret = process.env.AZURE_CLIENT_SECRET || "YOUR_CLIENT_SECRET";
 
   const tokenParams = new URLSearchParams();
