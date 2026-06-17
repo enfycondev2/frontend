@@ -77,8 +77,8 @@ export async function POST() {
           if (hasHighPriorityTag || titleMatch || summaryMatch) {
             highPriorityTenders.push({
               ...updatedTender,
-              district: tender.isState ? undefined : tender.district,
-              organisation: tender.isState ? tender.organisation : undefined
+              district: tender.isState ? undefined : (tender as any).district,
+              organisation: tender.isState ? (tender as any).organisation : undefined
             });
           }
         } else {
