@@ -29,15 +29,15 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Lock className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-center">
+            <img src="/logo/vibrant-icon-dark.png" alt="Enfycon Logo" className="w-32 h-32 object-contain" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Odisha Tender Platform
+          enfycon
         </p>
       </div>
 

@@ -5,6 +5,7 @@ import { Tender } from "@prisma/client";
 import { DashboardStats } from "@/components/DashboardStats";
 import { TenderTable } from "@/components/TenderTable";
 import { SettingsModal } from "@/components/SettingsModal";
+import { KeywordsModal } from "@/components/KeywordsModal";
 import { LogsModal } from "@/components/LogsModal";
 import { DistrictsModal } from "@/components/DistrictsModal";
 import { RefreshCw, LayoutDashboard, LogOut, Settings, ChevronDown, User, Bot } from "lucide-react";
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isKeywordsModalOpen, setIsKeywordsModalOpen] = useState(false);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isDistrictsModalOpen, setIsDistrictsModalOpen] = useState(false);
   const lastSearchTerm = useRef(searchTerm);
@@ -271,11 +273,11 @@ export default function Dashboard() {
             
             {/* Logo - Left */}
             <div className="flex items-center gap-2 shrink-0 w-full lg:w-auto justify-between lg:justify-start">
-              <div className="flex items-center gap-2">
-                <LayoutDashboard className="text-blue-600 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 hidden sm:block">Odisha Tender Platform</h1>
-                <h1 className="text-lg font-bold tracking-tight text-gray-900 sm:hidden">OTP</h1>
-              </div>
+              <Link href="/" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+                <img src="/logo/vibrant-icon-dark.png" alt="Enfycon Logo" className="w-8 h-8 sm:w-12 sm:h-12 shrink-0 object-contain" />
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 hidden sm:block">enfycon</h1>
+                <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:hidden">enfycon</h1>
+              </Link>
               
               {/* Mobile Actions (Visible only on mobile) */}
               <div className="flex lg:hidden items-center gap-2 sm:gap-3 shrink-0">
@@ -427,6 +429,7 @@ export default function Dashboard() {
                   hideControls={false}
                   typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
                   onRetryAI={triggerQueueProcessing}
+                  onOpenKeywordsModal={() => setIsKeywordsModalOpen(true)}
                 />
               </div>
             )}
@@ -500,7 +503,7 @@ export default function Dashboard() {
             page={page}
             totalPages={tableTotalPages}
             onPageChange={setPage}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenKeywordsModal={() => setIsKeywordsModalOpen(true)}
             typeLabel={activeTab === 'state' || viewType === 'state' ? 'Organisation' : 'District'}
             organisations={activeTab === 'state' || viewType === 'state' ? stats.districtsData.map((d: any) => d.district) : undefined}
             onRetryAI={triggerQueueProcessing}
@@ -515,6 +518,17 @@ export default function Dashboard() {
           setIsSettingsOpen(false);
           if (changed) {
             // Re-fetch tenders and stats to reflect new keywords
+            fetchTenders();
+          }
+        }} 
+      />
+
+      {/* Keywords Modal */}
+      <KeywordsModal 
+        isOpen={isKeywordsModalOpen} 
+        onClose={(changed) => {
+          setIsKeywordsModalOpen(false);
+          if (changed) {
             fetchTenders();
           }
         }} 

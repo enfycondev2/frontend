@@ -62,7 +62,7 @@ export async function scrapeStateTenders(source: string = "AUTO"): Promise<Scrap
           district: orgChain || "State Tenders",
           title: cleanTitle,
           description: `Opening Date: ${openingDateStr} | Published: ${publishedDateStr}`,
-          startDate: new Date(publishedDateStr),
+          startDate: openingDateStr ? new Date(openingDateStr) : new Date(publishedDateStr),
           endDate: new Date(closingDateStr),
           sourceUrl: STATE_URL,
         };

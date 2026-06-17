@@ -9,6 +9,12 @@ interface Keyword {
   word: string;
 }
 
+interface EmailRecipient {
+  id: string;
+  email: string;
+  name: string;
+}
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: (changed?: boolean) => void;
@@ -23,6 +29,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [hasChanges, setHasChanges] = useState(false);
   const [scrapeInterval, setScrapeInterval] = useState<number>(6);
   const [updatingInterval, setUpdatingInterval] = useState(false);
+  const [recipients, setRecipients] = useState<EmailRecipient[]>([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const fetchKeywords = async () => {
     try {
@@ -34,6 +44,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const resSettings = await axios.get("/api/settings");
       if (resSettings.data.success) {
         setScrapeInterval(resSettings.data.scrapeIntervalHours);
+      }
+      const resRecipients = await axios.get("/api/recipients");
+      if (resRecipients.data.success) {
+        setRecipients(resRecipients.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -93,6 +107,36 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setError("Failed to update scrape interval.");
     } finally {
       setUpdatingInterval(false);
+    }
+  };
+
+  const handleAddEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail.trim()) return;
+    try {
+      setAddingEmail(true);
+      setEmailError("");
+      const res = await axios.post("/api/recipients", { email: newEmail });
+      if (res.data.success) {
+        setRecipients([res.data.data, ...recipients]);
+        setNewEmail("");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setEmailError(err.response?.data?.error || "Failed to add recipient. Make sure the email exists in Microsoft Directory.");
+    } finally {
+      setAddingEmail(false);
+    }
+  };
+
+  const handleDeleteEmail = async (id: string) => {
+    try {
+      setRecipients(recipients.filter(r => r.id !== id));
+      await axios.delete(`/api/recipients?id=${id}`);
+    } catch (err) {
+      console.error(err);
+      setEmailError("Failed to delete recipient.");
+      fetchKeywords(); // reload all data
     }
   };
 
@@ -186,6 +230,70 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <hr className="my-8 border-gray-100" />
+
+          {/* Email Recipients */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              Alert Recipients
+            </h4>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              Add Microsoft email addresses to receive the high-priority tender alerts. The system will automatically fetch their display name from Microsoft.
+            </p>
+            
+            <form onSubmit={handleAddEmail} className="flex gap-3 mb-4">
+              <input
+                type="email"
+                placeholder="user@enfycon.com"
+                className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                disabled={addingEmail}
+              />
+              <button
+                type="submit"
+                disabled={addingEmail || !newEmail.trim()}
+                className="inline-flex items-center gap-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingEmail ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Add
+              </button>
+            </form>
+            
+            {emailError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex items-start gap-2">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <p>{emailError}</p>
+              </div>
+            )}
+            
+            <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+              {loading ? (
+                <div className="p-4 text-center text-xs text-gray-400">Loading...</div>
+              ) : recipients.length === 0 ? (
+                <div className="p-4 text-center text-xs text-gray-400">No recipients configured.</div>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {recipients.map(r => (
+                    <li key={r.id} className="px-4 py-3 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{r.name}</span>
+                        <span className="text-xs text-gray-500">{r.email}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteEmail(r.id)}
+                        className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                        title="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           <hr className="my-8 border-gray-100" />

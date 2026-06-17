@@ -75,7 +75,7 @@ interface TenderTableProps {
   totalPages?: number;
   onPageChange?: (page: number) => void;
   hideControls?: boolean;
-  onOpenSettings?: () => void;
+  onOpenKeywordsModal?: () => void;
   typeLabel?: string;
   organisations?: string[];
   onRetryAI?: () => void;
@@ -98,7 +98,7 @@ export function TenderTable({
   totalPages,
   onPageChange,
   hideControls = false,
-  onOpenSettings,
+  onOpenKeywordsModal,
   typeLabel = "District",
   organisations,
   onRetryAI
@@ -223,9 +223,9 @@ export function TenderTable({
             )}
           </button>
           
-          {onOpenSettings && (
+          {onOpenKeywordsModal && (
             <button 
-              onClick={onOpenSettings}
+              onClick={onOpenKeywordsModal}
               className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm transition-colors text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1.5 shrink-0"
               title="Modify Priority Keywords"
             >
@@ -270,7 +270,7 @@ export function TenderTable({
                 </td>
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <div className="flex flex-col gap-2">
-                    <p className="font-medium text-gray-900 leading-tight">{tender.title}</p>
+                    <p className="font-medium text-gray-900 leading-tight">{tender.title.replace(/[\[\]]/g, '').trim()}</p>
                     
                     {tender.tags && tender.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">

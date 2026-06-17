@@ -28,8 +28,12 @@ export async function POST() {
       return NextResponse.json({ success: true, processed: 0, message: "Queue is empty." });
     }
 
+    const keywordsData = await prisma.priorityKeyword.findMany();
+    const priorityKeywords = keywordsData.map((k: any) => k.word.toLowerCase());
+
     let processedCount = 0;
     let errorCount = 0;
+    const highPriorityTenders: any[] = [];
 
     for (const tender of allPending) {
       const delegate = tender.isState ? prisma.stateTender : prisma.tender;
@@ -52,7 +56,7 @@ export async function POST() {
         }
         
         if (details) {
-          await (delegate as any).update({
+          const updatedTender = await (delegate as any).update({
             where: { id: tender.id },
             data: {
               tenderValue: details.tenderValue,
@@ -65,6 +69,18 @@ export async function POST() {
             }
           });
           processedCount++;
+
+          const hasHighPriorityTag = details.tags && details.tags.some((tag: string) => priorityKeywords.some((kw: string) => tag.toLowerCase().includes(kw)));
+          const titleMatch = priorityKeywords.some((kw: string) => tender.title?.toLowerCase().includes(kw));
+          const summaryMatch = priorityKeywords.some((kw: string) => details.aiSummary?.toLowerCase().includes(kw));
+          
+          if (hasHighPriorityTag || titleMatch || summaryMatch) {
+            highPriorityTenders.push({
+              ...updatedTender,
+              district: tender.isState ? undefined : tender.district,
+              organisation: tender.isState ? tender.organisation : undefined
+            });
+          }
         } else {
           // If details came back null but didn't throw an error, mark as processed so we don't get stuck in a loop
           await (delegate as any).update({
@@ -93,6 +109,27 @@ export async function POST() {
         if (isRateLimit) {
           console.warn(`[AI Queue] Halting queue processing due to Gemini ${error.status} Rate Limit.`);
           break;
+        }
+      }
+    }
+
+    if (highPriorityTenders.length > 0) {
+      const { sendHighPriorityTenderEmail } = await import('@/lib/email');
+      
+      const recipients = await (prisma as any).emailRecipient.findMany();
+      
+      const stateTendersList = highPriorityTenders.filter(t => t.organisation);
+      const districtTendersList = highPriorityTenders.filter(t => t.district);
+
+      if (districtTendersList.length > 0) {
+        for (const r of recipients) {
+          sendHighPriorityTenderEmail(districtTendersList, 'District', r.email, r.name, false).catch(console.error);
+        }
+      }
+      
+      if (stateTendersList.length > 0) {
+        for (const r of recipients) {
+          sendHighPriorityTenderEmail(stateTendersList, 'State', r.email, r.name, false).catch(console.error);
         }
       }
     }

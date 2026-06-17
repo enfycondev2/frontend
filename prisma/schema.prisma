@@ -114,3 +114,10 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model EmailRecipient {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+}

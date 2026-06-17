@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Odisha Tender Platform",
+  title: "Odisha Tender Portal | Enfycon Inc",
   description: "Monitor and track the latest tenders across Odisha districts.",
 };
 
