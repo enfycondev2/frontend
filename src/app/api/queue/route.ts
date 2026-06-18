@@ -56,17 +56,27 @@ export async function POST() {
         }
         
         if (details) {
+          const updateData: any = {
+            aiSummary: details.aiSummary,
+            tags: details.tags,
+            aiProcessed: true,
+            aiError: null
+          };
+
+          if (!tender.isState) {
+            updateData.tenderValue = details.tenderValue;
+            updateData.emd = details.emd;
+            updateData.applicationCost = details.applicationCost;
+            
+            if (details.bidOpeningDate) {
+              const prefix = tender.description ? `${tender.description} | ` : '';
+              updateData.description = `${prefix}Bid Opening: ${details.bidOpeningDate}`;
+            }
+          }
+
           const updatedTender = await (delegate as any).update({
             where: { id: tender.id },
-            data: {
-              tenderValue: details.tenderValue,
-              emd: details.emd,
-              applicationCost: details.applicationCost,
-              aiSummary: details.aiSummary,
-              tags: details.tags,
-              aiProcessed: true,
-              aiError: null
-            }
+            data: updateData
           });
           processedCount++;
 

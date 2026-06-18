@@ -46,7 +46,11 @@ export async function sendHighPriorityTenderEmail(tenders: any[], tenderType: st
             </tr>
           </thead>
           <tbody>
-            ${tenders.map((tender, index) => `
+            ${tenders.map((tender, index) => {
+              const tidMatch = tender.title.match(/(\d{4}_[A-Z0-9]+_\d+(?:_\d+)?)/i);
+              const tid = tidMatch ? tidMatch[1] : null;
+              
+              return `
             <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 16px; color: #4b5563; font-weight: 600; text-transform: uppercase; font-size: 12px; vertical-align: top; border: 1px solid #e5e7eb;">
                 ${tender.district || tender.organisation || 'N/A'}
@@ -66,15 +70,30 @@ export async function sendHighPriorityTenderEmail(tenders: any[], tenderType: st
               </td>
               <td style="padding: 16px; vertical-align: top; border: 1px solid #e5e7eb; white-space: nowrap; font-size: 13px;">
                 <div style="margin-bottom: 6px; color: #374151;">📅 <strong style="color:#6b7280; font-size:11px; text-transform:uppercase;">Start:</strong><br/>${tender.startDate ? new Date(tender.startDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'N/A'}</div>
-                <div style="color: #374151;">⏳ <strong style="color:#6b7280; font-size:11px; text-transform:uppercase;">End:</strong><br/>${tender.endDate ? new Date(tender.endDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'N/A'}</div>
+                <div style="margin-bottom: 6px; color: #374151;">⏳ <strong style="color:#6b7280; font-size:11px; text-transform:uppercase;">End:</strong><br/>${tender.endDate ? new Date(tender.endDate).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}) : 'N/A'}</div>
+                ${(() => {
+                  const bidOpenMatch = tender.description ? tender.description.match(/Bid Opening:\s*([^|]+)/i) : null;
+                  const bidOpenDate = bidOpenMatch ? bidOpenMatch[1].trim().split(' ')[0] : null;
+                  if (!bidOpenDate && tenderType !== 'State') return '';
+                  return `<div style="color: #374151;">📂 <strong style="color:#6b7280; font-size:11px; text-transform:uppercase;">Bid Open:</strong><br/>${bidOpenDate || 'N/A'}</div>`;
+                })()}
               </td>
-              <td style="padding: 16px; vertical-align: top; border: 1px solid #e5e7eb; white-space: nowrap; font-size: 13px;">
-                ${tender.sourceUrl ? `<a href="${tender.sourceUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #f3f4f6; color: #4361ee; text-decoration: none; border-radius: 4px; font-weight: 600; margin-bottom: 6px; border: 1px solid #e5e7eb; width: 100%; text-align: center; box-sizing: border-box;">↗ Source</a><br/>` : ''}
-                ${tender.noticePdfUrl ? `<a href="${tender.noticePdfUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #f3f4f6; color: #4361ee; text-decoration: none; border-radius: 4px; font-weight: 600; margin-bottom: 6px; border: 1px solid #e5e7eb; width: 100%; text-align: center; box-sizing: border-box;">📄 Notice</a><br/>` : ''}
-                ${tender.tenderPdfUrl ? `<a href="${tender.tenderPdfUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #f3f4f6; color: #4361ee; text-decoration: none; border-radius: 4px; font-weight: 600; border: 1px solid #e5e7eb; width: 100%; text-align: center; box-sizing: border-box;">📄 Tender</a>` : ''}
+              <td style="padding: 16px; vertical-align: top; border: 1px solid #e5e7eb; white-space: nowrap; font-size: 13px; text-align: center;">
+                ${tender.noticePdfUrl ? `<a href="${tender.noticePdfUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #eff6ff; color: #2563eb; text-decoration: none; border-radius: 4px; font-weight: 600; margin-bottom: 6px; width: 100%; box-sizing: border-box;">📄 Notice</a><br/>` : ''}
+                ${tender.tenderPdfUrl ? `<a href="${tender.tenderPdfUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #faf5ff; color: #9333ea; text-decoration: none; border-radius: 4px; font-weight: 600; margin-bottom: 6px; width: 100%; box-sizing: border-box;">📄 Tender</a><br/>` : ''}
+                
+                ${tenderType === 'State' ? `
+                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                    <a href="https://tendersodisha.gov.in/nicgep/app?page=FrontEndAdvancedSearch&service=page" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 4px; font-weight: 600; border: 1px solid #e5e7eb; width: 100%; box-sizing: border-box;">🔍 Search on Portal</a>
+                    ${tid ? `<div style="margin-top: 6px; font-size: 10px; color: #6b7280;">ID: <strong style="user-select: all; background-color: #fef3c7; padding: 3px 6px; border-radius: 3px; color: #92400e; letter-spacing: 0.5px;">${tid}</strong></div>` : ''}
+                  </div>
+                ` : `
+                  ${!tender.noticePdfUrl && !tender.tenderPdfUrl ? `<a href="${tender.sourceUrl}" target="_blank" style="display:inline-block; padding: 6px 12px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 4px; font-weight: 600; border: 1px solid #e5e7eb; width: 100%; box-sizing: border-box;">↗ View Portal</a>` : ''}
+                `}
               </td>
             </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       </div>

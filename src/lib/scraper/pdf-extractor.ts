@@ -7,6 +7,7 @@ export interface ExtractedTenderDetails {
   tenderValue: string | null;
   emd: string | null;
   applicationCost: string | null;
+  bidOpeningDate?: string | null;
   aiSummary: string | null;
   tags: string[];
   rawText?: string | null;
@@ -99,6 +100,7 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
         tenderValue: { type: Type.STRING, description: "Estimated Cost/Value", nullable: true },
         emd: { type: Type.STRING, description: "Earnest Money Deposit", nullable: true },
         applicationCost: { type: Type.STRING, description: "Cost of Tender Paper", nullable: true },
+        bidOpeningDate: { type: Type.STRING, description: "The exact date of bid opening/technical bid opening (e.g. 29-Jun-2026)", nullable: true },
         aiSummary: { type: Type.STRING, description: "1-sentence summary", nullable: true },
         tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of relevant industry tags/keywords (e.g. Software, Infrastructure, Solar, Civil, Electrical, etc.) extracted from the document." }
       }
@@ -110,8 +112,9 @@ export async function extractTenderDetailsFromPdf(pdfUrl: string): Promise<Extra
       1. Estimated Cost/Value of the tender
       2. EMD (Earnest Money Deposit)
       3. Cost of Tender Paper/Document Fee
-      4. A brief 1-sentence summary of the work
-      5. Extract a list of relevant industry tags/keywords (e.g. Software, Hardware, Civil, Solar, Electrical)
+      4. The exact date when the technical bid will be opened (bid opening date)
+      5. A brief 1-sentence summary of the work
+      6. Extract a list of relevant industry tags/keywords (e.g. Software, Hardware, Civil, Solar, Electrical)
       
       Note: The document may be a scanned image. Please read the tables carefully.
     `;

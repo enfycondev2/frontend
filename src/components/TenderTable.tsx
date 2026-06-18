@@ -52,9 +52,37 @@ const renderOrganisation = (orgStr: string) => {
   const lastPart = parts.pop();
   return (
     <div className="flex flex-col gap-1 mt-0.5">
-      <span className="text-[10px] text-gray-500 font-medium leading-tight uppercase tracking-wider">{parts.join(' › ')}</span>
       <span className="text-[13px] font-bold text-gray-900 leading-tight uppercase">{lastPart}</span>
     </div>
+  );
+};
+
+const SearchNICGEPButton = ({ tenderId }: { tenderId: string | null }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = () => {
+    if (tenderId) {
+      navigator.clipboard.writeText(tenderId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <a 
+      href="https://tendersodisha.gov.in/nicgep/app?page=FrontEndAdvancedSearch&service=page" 
+      target="_blank" 
+      rel="noreferrer" 
+      onClick={handleClick}
+      className={`flex flex-col items-center gap-1 text-xs border px-2 py-1.5 rounded transition-colors shadow-sm w-full justify-center font-medium ${copied ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-gray-100 border-gray-200 text-gray-700 hover:text-gray-900'}`}
+      title={tenderId ? `Auto-copies ID: ${tenderId}` : "Search on NICGEP"}
+    >
+      <div className="flex items-center gap-1.5">
+        {copied ? <CheckCircle className="w-3 h-3 text-emerald-600" /> : <Search className="w-3 h-3 text-gray-500" />}
+        <span>{copied ? "ID Copied! Opening..." : "Search on Portal"}</span>
+      </div>
+      {tenderId && !copied && <span className="text-[9px] text-gray-400 font-normal leading-none tracking-wide">Auto-copies ID: {tenderId}</span>}
+    </a>
   );
 };
 
@@ -333,9 +361,9 @@ export function TenderTable({
 
                 <td className="px-5 py-5 whitespace-normal align-top">
                   <div className="flex flex-col gap-2 text-xs">
-                    <span className="flex items-center gap-1 text-gray-600">
-                      <Calendar className="w-3 h-3" />
-                      Start: {tender.startDate ? (
+                    <span className="flex items-center gap-1 text-gray-600 font-medium">
+                      <Calendar className="w-3 h-3 text-gray-400" />
+                      Sub Start: {tender.startDate ? (
                         <>
                           {dayjs(tender.startDate).format("DD MMM YYYY")}
                           <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded ml-1 font-semibold tracking-wide">
@@ -344,9 +372,9 @@ export function TenderTable({
                         </>
                       ) : "N/A"}
                     </span>
-                    <span className={`flex items-center gap-1 font-medium ${isExpired ? 'text-red-700' : 'text-gray-700'}`}>
-                      <Calendar className="w-3 h-3" />
-                      End: {tender.endDate ? (
+                    <span className={`flex items-center gap-1 font-medium mt-1 ${isExpired ? 'text-red-600' : 'text-gray-600'}`}>
+                      <Calendar className={`w-3 h-3 ${isExpired ? 'text-red-400' : 'text-gray-400'}`} />
+                      Sub End: {tender.endDate ? (
                         <>
                           {dayjs(tender.endDate).format("DD MMM YYYY")}
                           <span className={`text-[10px] border px-1.5 py-0.5 rounded ml-1 font-bold tracking-wide ${isExpired ? 'bg-red-50 text-red-600 border-red-100' : isExpiringSoon ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
@@ -355,25 +383,50 @@ export function TenderTable({
                         </>
                       ) : "N/A"}
                     </span>
+                    {(() => {
+                      const bidOpenMatch = tender.description ? tender.description.match(/Bid Opening:\s*([^|]+)/i) : null;
+                      const displayDate = bidOpenMatch ? bidOpenMatch[1].trim().split(' ')[0] : ((tender as any).organisation ? "N/A" : null);
+                      
+                      if (!displayDate) return null;
+
+                      return (
+                        <span className="flex items-center gap-1 text-gray-600 font-medium mt-1">
+                          <Calendar className="w-3 h-3 text-gray-400" />
+                          Bid Open: {displayDate}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </td>
                 <td className="px-4 py-4 whitespace-normal align-top">
                   <div className="flex flex-col items-start gap-2">
                     {tender.noticePdfUrl && (
-                      <a href={tender.noticePdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded">
+                      <a href={tender.noticePdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs bg-blue-50 px-2 py-1.5 rounded w-full justify-center font-medium transition-colors">
                         <Download className="w-3 h-3" /> Notice
                       </a>
                     )}
                     {tender.tenderPdfUrl && (
-                      <a href={tender.tenderPdfUrl} target="_blank" rel="noreferrer" className="text-purple-600 hover:text-purple-800 flex items-center gap-1 text-xs bg-purple-50 px-2 py-1 rounded">
+                      <a href={tender.tenderPdfUrl} target="_blank" rel="noreferrer" className="text-purple-600 hover:text-purple-800 flex items-center gap-1 text-xs bg-purple-50 px-2 py-1.5 rounded w-full justify-center font-medium transition-colors">
                         <Download className="w-3 h-3" /> Tender
                       </a>
                     )}
-                    {!tender.noticePdfUrl && !tender.tenderPdfUrl && (
-                      <a href={tender.sourceUrl} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-gray-800 flex items-center gap-1 text-xs bg-gray-100 border border-gray-200 px-2 py-1 rounded transition-colors shadow-sm w-full justify-center">
+                    
+                    {!(tender as any).organisation && !tender.noticePdfUrl && !tender.tenderPdfUrl && (
+                      <a href={tender.sourceUrl} target="_blank" rel="noreferrer" className="text-gray-600 hover:text-gray-800 flex items-center gap-1 text-xs bg-gray-100 border border-gray-200 px-2 py-1.5 rounded transition-colors shadow-sm w-full justify-center mt-1">
                         <ExternalLink className="w-3 h-3" /> View Portal
                       </a>
                     )}
+
+                    {(tender as any).organisation && (() => {
+                      const tenderIdMatch = tender.title.match(/(\d{4}_[A-Z0-9]+_\d+(?:_\d+)?)/i);
+                      const tenderId = tenderIdMatch ? tenderIdMatch[1] : null;
+
+                      return (
+                        <div className="flex flex-col w-full gap-1 mt-1 pt-1 border-t border-gray-100">
+                          <SearchNICGEPButton tenderId={tenderId} />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </td>
                 <td className="px-5 py-5 whitespace-normal align-top">

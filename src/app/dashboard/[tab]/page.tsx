@@ -504,7 +504,7 @@ export default function Dashboard() {
             totalPages={tableTotalPages}
             onPageChange={setPage}
             onOpenKeywordsModal={() => setIsKeywordsModalOpen(true)}
-            typeLabel={activeTab === 'state' || viewType === 'state' ? 'Organisation' : 'District'}
+            typeLabel={activeTab === 'state' || viewType === 'state' ? 'Organisation' : (activeTab === 'district' || viewType === 'district' ? 'District' : 'District / Org')}
             organisations={activeTab === 'state' || viewType === 'state' ? stats.districtsData.map((d: any) => d.district) : undefined}
             onRetryAI={triggerQueueProcessing}
           />
