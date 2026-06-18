@@ -151,7 +151,7 @@ export async function scrapeStateTenders(source: string = "AUTO"): Promise<Scrap
         applicationCost
       };
 
-      let validData = null;
+      let validData: any = null;
       const validation = TenderSchema.safeParse(tenderObj);
       if (validation.success) {
         validData = validation.data;
@@ -162,8 +162,9 @@ export async function scrapeStateTenders(source: string = "AUTO"): Promise<Scrap
              startDate: new Date(),
              endDate: new Date()
           };
-          if (TenderSchema.safeParse(fallbackTender).success) {
-              validData = fallbackTender;
+          const fallbackValidation = TenderSchema.safeParse(fallbackTender);
+          if (fallbackValidation.success) {
+              validData = fallbackValidation.data;
           }
         } catch(e) {}
       }
