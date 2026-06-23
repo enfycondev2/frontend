@@ -19,7 +19,22 @@ export function parseTenderPage(html: string, district: string, sourceUrl: strin
         cIdx = 1;
       }
 
-      const title = $(cells[cIdx]).text().trim();
+      let title = $(cells[cIdx]).text().trim();
+
+      // Some districts (e.g. Mayurbhanj) have an empty Title column;
+      // the actual tender name is in the next cell (Description column).
+      // If title is empty, scan forward to find the first non-empty, non-date cell.
+      if (!title) {
+        for (let k = cIdx + 1; k < cells.length; k++) {
+          const candidate = $(cells[k]).text().trim();
+          if (candidate && !candidate.match(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/) && candidate.length > 5) {
+            title = candidate;
+            cIdx = k; // advance index so remaining cells are read correctly
+            break;
+          }
+        }
+      }
+
       let description: string | null = null;
       let startDate: Date | null = null;
       let endDate: Date | null = null;
