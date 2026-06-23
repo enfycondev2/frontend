@@ -13,6 +13,40 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import axios from "axios";
 
+// The 60 canonical NICGEP organisation names — used for the organisation filter dropdown
+const CANONICAL_ORGS = [
+  "Bhubaneswar Development Authority", "Brahmapur Development Authority",
+  "CCE,Anandapur Barrage Project", "CCE,Brutang and Hadua Irrigation Project Dasapalla",
+  "CCE Deo Irr Project Kalimela", "CCE Potteru Irr.Project,Balimela",
+  "CE AND BM MBBS CHANDIKOLE", "CE BM Baitarani Basin Kenojhar",
+  "CE BM Right Basin,Jharkhand", "CE-BALUSN Basin,Laxmipur",
+  "CE-SALMO Basin,BBSR", "CE-BM,RVN Basin,Berhampur",
+  "CE-BM, Tel Basin,Bhawanipatna", "CE,Drainage,Cuttack",
+  "CE,Megalift Projects,Bhubaneswar", "CE,Minor Irrigation,BBSR",
+  "CE-NI", "CE RW I",
+  "Chief Engineer Mech. WS Bhubaneswar", "Chief Engineer Quality Assurance Bhubaneswar",
+  "Cuttack Development Authority", "DG Odisha Police Cuttack",
+  "Directorate of Agriculture and Food Production", "Directorate of Technical Education and Training",
+  "EIC-CIVIL", "ENGINEERING PROJECTS (INDIA) LIMITED",
+  "Forest Environment and Climate Change Department", "Housing and Urban Development Department",
+  "IDCO", "Kanapur Irrigation Project",
+  "Municipal Bodies", "NBCC INDIA LIMITED",
+  "Odisha Agro Industries Corporation Ltd", "Odisha Coal and Power Limited",
+  "ODISHA CONSTRUCTION CORPORATION LTD", "Odisha Fire And Emergency Service",
+  "Odisha Hydro Power Corporation Ltd", "Odisha Power Generation Corporation Limited",
+  "Odisha Small Industries Corporation Ltd", "Odisha State Agricultural Marketing Board",
+  "Odisha State Cashew Devt.Corp. Ltd", "Odisha State Civil Supplies Corp. Ltd",
+  "Odisha State Co. Milk Producers Federation Ltd.", "Odisha State Medical Corporation Ltd",
+  "Odisha State Seed Corporation Ltd", "Odisha State Warehousing Corporation",
+  "Odisha Tourism Devl. Corp.", "Odisha University of Technology and Research",
+  "OTMA Bhubaneswar", "Orissa Bridge and Construction Corporation Ltd",
+  "Orissa Mining Corporation", "Orissa State Police Housing and Welfare Corporation Ltd",
+  "Orissa Water Supply and Sewerage Board", "Panchayats Raj and Drinking Water Department Odisha",
+  "PHFO", "PURI KUMAR DEVELOPMENT AUTHORITY",
+  "Rourkela Municipal Corporation", "Rural Water Supply and Sanitation",
+  "ST And SC Development Deptt", "WATCO Bhubaneswar",
+];
+
 export default function Dashboard() {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
@@ -428,6 +462,7 @@ export default function Dashboard() {
                   highPriorityCount={stats.highPriority}
                   hideControls={false}
                   typeLabel={activeTab === 'state' ? 'Organisation' : 'District'}
+                  organisations={activeTab === 'state' ? CANONICAL_ORGS : undefined}
                   onRetryAI={triggerQueueProcessing}
                   onOpenKeywordsModal={() => setIsKeywordsModalOpen(true)}
                 />
@@ -505,7 +540,7 @@ export default function Dashboard() {
             onPageChange={setPage}
             onOpenKeywordsModal={() => setIsKeywordsModalOpen(true)}
             typeLabel={activeTab === 'state' || viewType === 'state' ? 'Organisation' : (activeTab === 'district' || viewType === 'district' ? 'District' : 'District / Org')}
-            organisations={activeTab === 'state' || viewType === 'state' ? stats.districtsData.map((d: any) => d.district) : undefined}
+            organisations={activeTab === 'state' || viewType === 'state' ? CANONICAL_ORGS : undefined}
             onRetryAI={triggerQueueProcessing}
           />
         )}
