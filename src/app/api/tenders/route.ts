@@ -211,7 +211,9 @@ export async function GET(request: NextRequest) {
       applied: searchParams.get('applied'),
       dateRange: searchParams.get('dateRange'),
       includeStats: searchParams.get('includeStats'),
-      tenderType: searchParams.get('tenderType')
+      tenderType: searchParams.get('tenderType'),
+      // Including _t in the cache key means a new timestamp = cache miss = fresh DB query
+      _t: forceRefresh || null,
     };
 
     // Note: Next.js unstable_cache keys are built from stringified arguments automatically.
