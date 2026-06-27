@@ -1,3 +1,10 @@
+/** Returns true for network-level timeouts — retrying these is pointless. */
+export function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: string; isAxiosError?: boolean };
+  return e.isAxiosError === true && (e.code === "ECONNABORTED" || e.code === "ETIMEDOUT");
+}
+
 export async function withRetry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -9,6 +16,13 @@ export async function withRetry<T>(
       return await operation();
     } catch (error) {
       attempt++;
+
+      // Don't retry timeouts — the server is unreachable or blocking us.
+      // Exponential backoff won't help and wastes ~60s per district.
+      if (isTimeoutError(error)) {
+        throw error;
+      }
+
       if (attempt >= maxRetries) {
         throw error;
       }
