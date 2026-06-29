@@ -18,5 +18,7 @@ COPY . .
 RUN npx prisma generate
 
 # Environment variables should be passed via docker-compose
+ENV NODE_OPTIONS="--max-old-space-size=800"
+
 # Command to run the local daemon
 CMD ["npm", "run", "scrape:local", "--", "--daemon"]
