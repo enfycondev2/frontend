@@ -219,32 +219,16 @@ export async function runFullScrape(source: string = "AUTO") {
     }
   }
 
-  // Drive the queue: keep spawning scraperLimit-wrapped tasks while there is
-  // work to do (either items in queue or tasks still in-flight that may push
-  // new retry items).
-  await new Promise<void>((resolve) => {
-    function scheduleNext() {
-      // Fill available concurrency slots from the queue.
-      while (queue.length > 0) {
-        const task = scraperLimit(() => processNext()).then(() => {
-          inFlight.delete(task);
-          // After each task finishes, try to fill slots again.
-          scheduleNext();
-          if (inFlight.size === 0 && queue.length === 0) {
-            resolve();
-          }
-        });
-        inFlight.add(task);
-      }
-
-      // If nothing is queued and nothing is running, we are done.
-      if (inFlight.size === 0 && queue.length === 0) {
-        resolve();
-      }
+  // Drive the queue using async workers instead of a buggy while-loop that floods p-limit.
+  // We use 3 concurrent workers.
+  const workers = Array.from({ length: 3 }).map(async () => {
+    while (queue.length > 0) {
+      await processNext();
     }
-
-    scheduleNext();
   });
+
+  // Wait for all workers to finish the queue (and any retries they append)
+  await Promise.all(workers);
 
   // State-level NICGEP scrape runs independently (not subject to district retries).
   const stateResult = await scraperLimit(async () => {
