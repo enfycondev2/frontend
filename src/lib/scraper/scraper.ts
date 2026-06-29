@@ -201,6 +201,8 @@ export async function runFullScrape(source: string = "AUTO") {
 
     if (attempt > 1) {
       console.log(`[Scraper Queue] Retrying ${district} (attempt ${attempt}/${MAX_DISTRICT_RETRIES})...`);
+    } else {
+      console.log(`🔍 [Scraper] Currently scraping district: ${district}...`);
     }
 
     await randomDelay(500, 2000);
