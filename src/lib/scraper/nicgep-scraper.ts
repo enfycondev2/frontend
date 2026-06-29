@@ -76,9 +76,9 @@ export async function scrapeStateTenders(source: string = "AUTO"): Promise<Scrap
         }
       });
 
-      // If it exists AND has the deep scraped fields (emd), skip it
-      if (existing && existing.emd !== null) {
-        // console.log(`[NICGEP] Skipping existing tender: ${cleanTitle.substring(0, 30)}...`);
+      // If it already exists in the database, skip it entirely!
+      // (Even if EMD is null, because some tenders genuinely don't have an EMD)
+      if (existing) {
         continue;
       }
 
